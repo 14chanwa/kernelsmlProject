@@ -23,18 +23,45 @@ Xte0 = np.genfromtxt('./data/Xte0_mat50.csv', delimiter=' ')
 
 
 #%%
-# Test sklearn...
+# Test sklearn with some linear kernel using provided bag-of-words features
 
 from sklearn import svm
 
-clf = svm.SVC()
+clf = svm.LinearSVC()
 
-# Train on all of the training set (should instead perform some kind of cross-
-# validation)
-clf.fit(Xtr0, Ytr0_labels)
+# Train on some part of the training set
+# The rest is used for validation
+training_proportion = 0.8
+N = np.shape(Xtr0)[0]
+first_test_index = int(np.floor(0.8 * N))
+
+clf.fit(Xtr0[0:first_test_index], Ytr0_labels[0:first_test_index])
 
 # Accuracy on training set
-Ytr0_results = clf.predict(Xtr0)
-tmp = Ytr0_labels == Ytr0_results
+Ytr0_results = clf.predict(Xtr0[first_test_index:N])
+tmp = Ytr0_labels[first_test_index:N] == Ytr0_results
 accuracy = np.sum(tmp) / np.size(tmp)
-print("Accuracy with linear SVM:", accuracy)
+print("Accuracy on test with linear SVM:", accuracy) # 0.6125
+
+
+#%%
+# Test sklearn with some gaussian rbf kernel using provided bag-of-words 
+# features
+
+from sklearn import svm
+
+clf = svm.SVC(kernel='rbf', gamma=38, C=0.1)
+
+# Train on some part of the training set
+# The rest is used for validation
+training_proportion = 0.8
+N = np.shape(Xtr0)[0]
+first_test_index = int(np.floor(0.8 * N))
+
+clf.fit(Xtr0[0:first_test_index], Ytr0_labels[0:first_test_index])
+
+# Accuracy on training set
+Ytr0_results = clf.predict(Xtr0[first_test_index:N])
+tmp = Ytr0_labels[first_test_index:N] == Ytr0_results
+accuracy = np.sum(tmp) / np.size(tmp)
+print("Accuracy on test set with gaussian rbf SVM:", accuracy) # 0.6225
