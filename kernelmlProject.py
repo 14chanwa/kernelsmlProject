@@ -13,6 +13,11 @@ import matplotlib as plt
 
 """
     linear_kernel
+"""
+class linear_kernel:
+    """
+    linear_kernel.evaluate
+    
     Let x1, ... y1, ... be vectors of R^p.
     Suppose x, y are of form:
         x = [[x1], [x2], ...] (n lines)
@@ -25,9 +30,40 @@ import matplotlib as plt
     
     Returns:
     res: float.
+    """
+    def evaluate(x, y):
+        return x.dot(y.transpose())
+
+
 """
-def linear_kernel(x, y):
-    return x.dot(y.transpose())
+    gaussian_kernel
+"""
+class gaussian_kernel:
+    """
+    gaussian_kernel.evaluate
+    
+    Let x1, ... y1, ... be vectors of R^p.
+    Suppose x, y are of form:
+        x = [[x1], [x2], ...] (n lines)
+        y = [[y1], [y2], ...] (m lines)
+    Compute the matrix K such that K[i, j] = - gamma * np.norm(xi, yj)^2.
+    
+    Parameters:
+    x: np.array.
+    y: np.array.
+    
+    Returns:
+    res: float.
+    """
+    
+    def __init__(self, gamma):
+        self.gamma = gamma
+    
+    def evaluate(x, y):
+        return 1
+
+
+#%%
 
 """
     CentreringInstance
@@ -56,9 +92,9 @@ class CentreringInstance():
             tmp = 0
             diag = 0
             for i in range(self.n):
-                diag += self.kernel(Xtr[i], Xtr[i])
+                diag += self.kernel.evaluate(Xtr[i], Xtr[i])
                 for j in range(i):
-                    tmp += self.kernel(Xtr[i], Xtr[j])
+                    tmp += self.kernel.evaluate(Xtr[i], Xtr[j])
             self.eta = (2 * tmp + diag) / self.n**2
     
     
@@ -71,10 +107,10 @@ class CentreringInstance():
         y: ???
     """
     def Kc(self, x, y):
-        res = self.kernel(x, y)
+        res = self.kernel.evaluate(x, y)
         for k in range(self.n):
-            res -= self.kernel(self.Xtr[k], x) / self.n
-            res -= self.kernel(self.Xtr[k], y) / self.n
+            res -= self.kernel.evaluate(self.Xtr[k], x) / self.n
+            res -= self.kernel.evaluate(self.Xtr[k], y) / self.n
         res += self.eta
         return res
 
@@ -109,9 +145,9 @@ class RidgeRegression():
         if K == None:
             K = np.zeros((self.n, self.n), dtype=float)
             for i in range(self.n):
-                K[i, i] = self.kernel(Xtr[i], Xtr[i])
+                K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
                 for j in range(i):
-                    K[i, j] = self.kernel(Xtr[i], Xtr[j])
+                    K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
                     K[j, i] = K[i, j]
         print(K)
         self.alpha = np.linalg.inv(K + lambd * self.n * np.eye(self.n)).dot(Ytr)
@@ -120,7 +156,7 @@ class RidgeRegression():
         m = Xte.shape[0]
         Yte = np.zeros((m,), dtype=float)
         for i in range(m):
-            tmp = self.kernel(self.Xtr, Xte[i])
+            tmp = self.kernel.evaluate(self.Xtr, Xte[i])
             tmp = np.multiply(self.alpha, tmp)
             Yte[i] = np.sum(tmp)
         return Yte
