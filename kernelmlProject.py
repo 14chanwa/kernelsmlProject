@@ -149,18 +149,22 @@ class RidgeRegression():
     def __init__(self, kernel=Linear_kernel(), center=False):
         self.kernel = kernel
     
-    def train(self, Xtr, Ytr, n, lambd=1, K=None):
+    def train(self, Xtr, Ytr, n, lambd=1, K=None, W=None):
         self.Xtr = Xtr
         self.n = n
+        if W == None:
+            W = np.eye(self.n,dtype=float)
+
         if K == None:
-            K = np.zeros((self.n, self.n), dtype=float)
+            K = np.zeros([self.n, self.n], dtype=float)
             for i in range(self.n):
                 K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
                 for j in range(i):
                     K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
                     K[j, i] = K[i, j]
         print(K)
-        self.alpha = np.linalg.inv(K + lambd * self.n * np.eye(self.n)).dot(Ytr)
+        W_sqrt = np.sqrt(W)
+        self.alpha = W_sqrt.dot(np.linalg.inv(W_sqrt.dot(K.dot(W_sqrt)) + lambd * self.n * np.eye(self.n))).dot(W_sqrt.dot(Ytr))
     
     def predict(self, Xte):
         m = Xte.shape[0]
@@ -187,21 +191,88 @@ print(ridge_regression.predict(np.array([1, 2.5]).reshape((1, 2))))
       
 class LogisticRegression():
     
-    def __init__(self, kernel, center=False):
+    def __init__(self, kernel=Linear_kernel(), center=False):
         self.kernel = kernel
     
-    def train(self, Xtr, Ytr):
+    def train(self, Xtr, Ytr, n, lambd = 1, K = None):
         # TODO
+        self.n = n
         self.Xtr = Xtr
-        # self.alpha = ...
+        self.Ytr = Ytr
+        self.lambd = lambd
+        if K == None:
+            K = np.zeros([self.n, self.n], dtype=float)
+            for i in range(self.n):
+                K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
+                for j in range(i):
+                    K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
+                    K[j, i] = K[i, j]
+
+        self.alpha = self.IRLS(K)
     
-    def classify(self, Xte):
-        # TODO
-        #Yte = 
-        #return Yte
-        1
+    def predict(self, Xte):
+        m = Xte.shape[0]
+        Yte = np.zeros((m,), dtype=float)
+        for i in range(m):
+            tmp = self.kernel.evaluate(self.Xtr, Xte[i])
+            tmp = np.multiply(self.alpha, tmp)
+            Yte[i] = np.sum(tmp)
+        return Yte
 
+    def IRLS(self, K, precision = 1e-12, max_iter = 1000):
+        self.K = K
+        W = np.eye(self.n,dtype = float)
 
+        alpha = np.ones(self.n,dtype = float)
+        P = np.eye(self.n, dtype = float)
+        
+        for i in range(self.n):
+            P[i,i] = -self.log_loss(-self.Ytr[i]*self.K[i,].dot(alpha))
+        
+        z = self.K.dot(alpha) - np.linalg.inv(W).dot(P.dot(self.Ytr))
+        ridge_regression = RidgeRegression()
+        err = 1e12
+        old_err = 0
+        iter = 0
+        while (iter < max_iter) & (np.abs(err-old_err) > precision):
+            old_err = err
+            ridge_regression.train(Xtr=self.Xtr, Ytr = z, n= self.n, K = self.K, W = W)
+            alpha = ridge_regression.alpha
+            print(iter)
+            print(alpha)
+            m = self.K.dot(alpha)
+            for i in range(self.n):
+                P[i,i] = -self.sigmoid(-self.Ytr[i]*m[i])
+                W[i,i] = self.sigmoid(m[i])*self.sigmoid(m[i])
+                z[i] = m[i] + self.Ytr[i]/self.sigmoid(-self.Ytr[i]*m[i])
+            err = self.distortion(alpha)
+            iter += 1
+        return alpha
+
+        
+    def log_loss(self,u):
+        return np.log(1+np.exp(-u))
+        
+    def sigmoid(self,u):
+        return 1/(1+np.exp(-u))
+        
+    def distortion(self, alpha):
+        J = 0.5*self.lambd*alpha.dot(self.K.dot(alpha))
+        for i in range(self.n):
+            J += self.log_loss(self.Ytr[i]*self.K[i,].dot(alpha))
+        return J
+        
+# Test
+print("Test on 2 vectors")
+n = 2
+Xtr = np.array([[1, 1], [1, 3]]).reshape((2, 2))
+Ytr = np.array([1, -1]).reshape((2,))
+log_regression = LogisticRegression()
+log_regression.train(Xtr, Ytr, n, 0)
+print(log_regression.predict(np.array([1, 2]).reshape((1, 2))))
+print(log_regression.predict(np.array([1, 2.5]).reshape((1, 2))))
+
+#%%
 class SVM():
     
     def __init__(self, kernel, center=False):
