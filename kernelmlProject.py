@@ -12,11 +12,11 @@ import matplotlib as plt
 #%%
 
 """
-    linear_kernel
+    Linear_kernel
 """
-class linear_kernel:
+class Linear_kernel:
     """
-    linear_kernel.evaluate
+    Linear_kernel.evaluate
     
     Let x1, ... y1, ... be vectors of R^p.
     Suppose x, y are of form:
@@ -31,22 +31,22 @@ class linear_kernel:
     Returns:
     res: float.
     """
-    def evaluate(x, y):
+    def evaluate(self, x, y):
         return x.dot(y.transpose())
 
 
 """
-    gaussian_kernel
+    Gaussian_kernel
 """
-class gaussian_kernel:
+class Gaussian_kernel:
     """
-    gaussian_kernel.evaluate
+    Gaussian_kernel.evaluate
     
     Let x1, ... y1, ... be vectors of R^p.
     Suppose x, y are of form:
         x = [[x1], [x2], ...] (n lines)
         y = [[y1], [y2], ...] (m lines)
-    Compute the matrix K such that K[i, j] = - gamma * np.norm(xi, yj)^2.
+    Compute the matrix K such that K[i, j] = exp(- gamma * norm(xi, yj)^2).
     
     Parameters:
     x: np.array.
@@ -59,8 +59,18 @@ class gaussian_kernel:
     def __init__(self, gamma):
         self.gamma = gamma
     
-    def evaluate(x, y):
-        return 1
+    def evaluate(self, x, y):
+        
+        if y.ndim == 1:
+            res = np.exp(- self.gamma * np.norm())
+        
+        n = x.shape[0]
+        m = y.shape[0]
+        res = np.zeros((n, m), dtype=float)
+        for i in range(n):
+            for j in range(m):
+                res[i, j] = np.exp(-self.gamma * np.linalg.norm(x[i] - y[j])**2) 
+        return res
 
 
 #%%
@@ -119,7 +129,7 @@ class CentreringInstance():
 print("Test: try to center 2 vectors")
 n = 2
 X = np.array([[0, 2], [0, 0]], dtype=float)
-centering_instance = CentreringInstance(linear_kernel)
+centering_instance = CentreringInstance(Linear_kernel())
 centering_instance.train(X, n)
 print(centering_instance.Kc(X[0,:], X[1,:]))
 print(centering_instance.Kc(np.array([1, 1]), X[1,:]))
@@ -136,7 +146,7 @@ print(np.mean(Xc))
 
 class RidgeRegression():
     
-    def __init__(self, kernel=linear_kernel, center=False):
+    def __init__(self, kernel=Linear_kernel(), center=False):
         self.kernel = kernel
     
     def train(self, Xtr, Ytr, n, lambd=1, K=None):
