@@ -212,6 +212,8 @@ plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
 plt.colorbar()
 plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
+plt.scatter(xv[np.abs(res)<1e-3],yv[np.abs(res)<1e-3], color= 'black')
+
 plt.show()
 
 #%%      
