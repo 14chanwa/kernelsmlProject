@@ -365,10 +365,12 @@ plt.show()
 
 
 #%%
+from cvxopt import matrix, solvers
 class SVM():
     
     def __init__(self, kernel=Linear_kernel(), center=False):
         self.kernel = kernel
+        self.center = center
     
     def train(self, Xtr, Ytr, n, lambd = 1, K=None):
         
@@ -377,10 +379,8 @@ class SVM():
             self.centeredKernel.train(Xtr, n)
             self.kernel = self.centeredKernel
             
-  
         self.n = n
         self.Xtr = Xtr
-        self.Ytr = Ytr
         self.lambd = lambd
         self.K = K
         if K is None:
@@ -391,11 +391,68 @@ class SVM():
                     self.K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
                     self.K[j, i] = self.K[i, j]
 
-        self.alpha = #TODO
+        P = matrix(self.K,tc='d')
+        q = matrix(-Ytr,tc='d')
+        G = matrix(np.append(np.eye(self.n)*(-Ytr),np.eye(self.n)*(Ytr),axis=0),tc='d')
+        h = matrix(np.append(np.zeros(self.n),np.ones(self.n,dtype=float)/(2*lambd*self.n),axis=0),tc='d')
+        solvers.options['show_progress'] = False
+        self.alpha = np.array(solvers.qp(P, q, G, h)['x'])
     
     def predict(self, Xte):
-        # TODO
-        #Yte = 
-        #return Yte
-        1
+        m = Xte.shape[0]
+        Yte = np.zeros((m,), dtype=float)
+        for i in range(m):
+            tmp = np.zeros((self.n,))
+            for j in range(self.n):
+                tmp[j] = self.kernel.evaluate(self.Xtr[j], Xte[i])
+            tmp = np.multiply(self.alpha, tmp)
+            Yte[i] = np.sum(tmp)
+        
+        return Yte
+
+# Test
+print("Test on 2 vectors")
+n = 2
+Xtr = np.array([[1, 1], [1, 3]]).reshape((2, 2))
+Ytr = np.array([1, -1]).reshape((2,))
     
+svm = SVM()
+svm.train(Xtr, Ytr, n)
+print(svm.predict(np.array([1, 2]).reshape((1, 2))))
+print(svm.predict(np.array([1, 2.5]).reshape((1, 2))))
+
+xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
+res = np.zeros(xv.shape)
+for i in range(xv.shape[0]):
+    for j in range(xv.shape[1]):
+        res[i, j] = svm.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)))
+
+plt.axis('equal')
+plt.scatter(xv, yv, c=res, s=100)
+plt.colorbar()
+plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
+#plt.scatter(xv[np.abs(res)<1e-2],yv[np.abs(res)<1e-2], color= 'black')
+plt.show()
+
+# Test
+print("Test on 3 vectors + centered")
+Xtr = np.array([[1, 1], [1, 3], [2, 1]]).reshape((3, 2))
+Ytr = np.array([1, -1, 1]).reshape((3,))
+n = Xtr.shape[0]
+svm = SVM()
+svm.train(Xtr, Ytr, n)
+print(svm.predict(np.array([1, 2]).reshape((1, 2))))
+print(svm.predict(np.array([1, 2.5]).reshape((1, 2))))
+
+xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
+res = np.zeros(xv.shape)
+for i in range(xv.shape[0]):
+    for j in range(xv.shape[1]):
+        res[i, j] = svm.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)))
+
+plt.axis('equal')
+plt.scatter(xv, yv, c=res, s=100)
+plt.colorbar()
+plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
+#plt.scatter(xv[np.abs(res)<1e-1],yv[np.abs(res)<1e-1], color= 'black')
+plt.show()    
