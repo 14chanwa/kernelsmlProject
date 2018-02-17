@@ -214,29 +214,38 @@ plt.colorbar()
 plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
 plt.show()
 
-#%%
-        
-      
+#%%      
 class LogisticRegression():
     
+    # Maybe better: center=True as default?
     def __init__(self, kernel=Linear_kernel(), center=False):
         self.kernel = kernel
+        self.center = center
     
     def train(self, Xtr, Ytr, n, lambd = 1, K = None):
+        
+        if self.center:
+            self.centeredKernel = CenteredKernel(self.kernel)
+            self.centeredKernel.train(Xtr, n)
+            self.kernel = self.centeredKernel
+            
+  
         self.n = n
         self.Xtr = Xtr
         self.Ytr = Ytr
         self.lambd = lambd
+        self.K = K
         if K is None:
-            K = np.zeros([self.n, self.n], dtype=float)
+            self.K = np.zeros([self.n, self.n], dtype=float)
             for i in range(self.n):
-                K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
+                self.K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
                 for j in range(i):
-                    K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
-                    K[j, i] = K[i, j]
+                    self.K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
+                    self.K[j, i] = self.K[i, j]
 
-        self.alpha = self.IRLS(K)
-    
+        self.alpha = self.IRLS()
+        
+        
     def predict(self, Xte):
         m = Xte.shape[0]
         Yte = np.zeros((m,), dtype=float)
@@ -246,36 +255,42 @@ class LogisticRegression():
                 tmp[j] = self.kernel.evaluate(self.Xtr[j], Xte[i])
             tmp = np.multiply(self.alpha, tmp)
             Yte[i] = np.sum(tmp)
+        
         return Yte
 
-    def IRLS(self, K, precision = 1e-12, max_iter = 1000):
-        self.K = K
-        W = np.eye(self.n,dtype = float)
+    def IRLS(self, precision = 1e-20, max_iter = 1000):
 
-        alpha = np.ones(self.n,dtype = float)
+        alpha = np.zeros(self.n,dtype = float)
+        W = np.eye(self.n,dtype = float)
         P = np.eye(self.n, dtype = float)
+        z = np.zeros(self.n,dtype=float)
         
         for i in range(self.n):
             P[i,i] = -self.sigmoid(-self.Ytr[i]*self.K[i,].dot(alpha))
-        
-        z = self.K.dot(alpha) - np.linalg.inv(W).dot(P).dot(self.Ytr)
-        ridge_regression = RidgeRegression()
+            W[i,i] = self.sigmoid(self.Ytr[i]*self.K[i,].dot(alpha))*(-P[i,i])
+            z[i] = self.K[i,].dot(alpha) - self.Ytr[i]*P[i,i]/W[i,i]
+            
+        #z = self.K.dot(alpha) - np.linalg.inv(W).dot(P).dot(self.Ytr)
+        ridge_regression = RidgeRegression(center=False)
         err = 1e12
         old_err = 0
         iter = 0
         while (iter < max_iter) & (np.abs(err-old_err) > precision):
+            #print(iter)
             old_err = err
-            ridge_regression.train(Xtr=self.Xtr, Ytr=z, lambd = self.lambd, n=self.n, K=self.K, W=W)
+            ridge_regression.train(self.Xtr, z, self.n, self.lambd, self.K, W)
             alpha = ridge_regression.alpha
-            print(iter)
-            print(alpha)
+            #print(alpha)
             m = self.K.dot(alpha)
             for i in range(self.n):
                 P[i,i] = -self.sigmoid(-self.Ytr[i]*m[i])
-                W[i,i] = self.sigmoid(m[i])*self.sigmoid(-m[i])
-                z[i] = m[i] + self.Ytr[i]/self.sigmoid(-self.Ytr[i]*m[i])
+                W[i,i] = self.sigmoid(self.Ytr[i]*m[i])*self.sigmoid(-self.Ytr[i]*m[i])
+                z[i] = m[i] - self.Ytr[i]*P[i,i]/W[i,i]
             err = self.distortion(alpha)
+            if err - old_err > 1e-10:
+                print("Distortion is going up!")
             iter += 1
+        print("IRLS converged in %d iterations" %iter)
         return alpha
 
         
@@ -286,7 +301,7 @@ class LogisticRegression():
         return 1/(1+np.exp(-u))
         
     def distortion(self, alpha):
-        J = 0.5*self.lambd*alpha.transpose().dot(self.K.dot(alpha))
+        J = 0.5*self.lambd*alpha.dot(self.K.dot(alpha))
         for i in range(self.n):
             J += self.log_loss(self.Ytr[i]*self.K[i,].dot(alpha)) / self.n
         return J
@@ -296,23 +311,87 @@ print("Test on 2 vectors")
 n = 2
 Xtr = np.array([[1, 1], [1, 3]]).reshape((2, 2))
 Ytr = np.array([1, -1]).reshape((2,))
-log_regression = LogisticRegression()
-log_regression.train(Xtr, Ytr, n, 10)
+
+#lambds = np.logspace(np.log10(0.01), np.log10(50),30)
+#for lambd in lambds:
+#    print("\n------ Lambda = %.3f ------" %lambd)
+#    log_regression = LogisticRegression(center=True)
+#    log_regression.train(Xtr, Ytr, n, lambd)
+#    print(log_regression.predict(np.array([1, 2]).reshape((1, 2))))
+#    print(log_regression.predict(np.array([1, 2.5]).reshape((1, 2))))
+#    print(log_regression.alpha)
+    
+log_regression = LogisticRegression(center=True)
+log_regression.train(Xtr, Ytr, n, 0.25)
 print(log_regression.predict(np.array([1, 2]).reshape((1, 2))))
 print(log_regression.predict(np.array([1, 2.5]).reshape((1, 2))))
+
+xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
+res = np.zeros(xv.shape)
+for i in range(xv.shape[0]):
+    for j in range(xv.shape[1]):
+        res[i, j] = log_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)))
+
+plt.axis('equal')
+plt.scatter(xv, yv, c=res, s=100)
+plt.colorbar()
+plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
+plt.show()
+
+# Test
+print("Test on 3 vectors + centered")
+Xtr = np.array([[1, 1], [1, 3], [2, 1]]).reshape((3, 2))
+Ytr = np.array([1, -1, 1]).reshape((3,))
+n = Xtr.shape[0]
+log_regression = LogisticRegression(center=True)
+log_regression.train(Xtr, Ytr, n, 0.1)
+print(log_regression.predict(np.array([1, 2]).reshape((1, 2))))
+print(log_regression.predict(np.array([1, 2.5]).reshape((1, 2))))
+
+xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
+res = np.zeros(xv.shape)
+for i in range(xv.shape[0]):
+    for j in range(xv.shape[1]):
+        res[i, j] = log_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)))
+
+plt.axis('equal')
+plt.scatter(xv, yv, c=res, s=100)
+plt.colorbar()
+plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
+plt.scatter(xv[np.abs(res)<1e-1],yv[np.abs(res)<1e-1], color= 'black')
+plt.show()
+
 
 #%%
 class SVM():
     
-    def __init__(self, kernel, center=False):
+    def __init__(self, kernel=Linear_kernel(), center=False):
         self.kernel = kernel
     
-    def train(self, Xtr, Ytr):
-        # TODO
+    def train(self, Xtr, Ytr, n, lambd = 1, K=None):
+        
+        if self.center:
+            self.centeredKernel = CenteredKernel(self.kernel)
+            self.centeredKernel.train(Xtr, n)
+            self.kernel = self.centeredKernel
+            
+  
+        self.n = n
         self.Xtr = Xtr
-        # self.alpha = ...
+        self.Ytr = Ytr
+        self.lambd = lambd
+        self.K = K
+        if K is None:
+            self.K = np.zeros([self.n, self.n], dtype=float)
+            for i in range(self.n):
+                self.K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
+                for j in range(i):
+                    self.K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
+                    self.K[j, i] = self.K[i, j]
+
+        self.alpha = #TODO
     
-    def classify(self, Xte):
+    def predict(self, Xte):
         # TODO
         #Yte = 
         #return Yte
