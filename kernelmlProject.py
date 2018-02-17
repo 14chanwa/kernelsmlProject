@@ -226,6 +226,7 @@ class LogisticRegression():
     
     def train(self, Xtr, Ytr, n, lambd = 1, K = None):
         
+        print("Centering the Gram matrix")
         if self.center:
             self.centeredKernel = CenteredKernel(self.kernel)
             self.centeredKernel.train(Xtr, n)
@@ -237,6 +238,7 @@ class LogisticRegression():
         self.Ytr = Ytr
         self.lambd = lambd
         self.K = K
+        print("Build the Gram Matrix")
         if K is None:
             self.K = np.zeros([self.n, self.n], dtype=float)
             for i in range(self.n):
@@ -245,6 +247,7 @@ class LogisticRegression():
                     self.K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
                     self.K[j, i] = self.K[i, j]
 
+        print("Start IRLS")
         self.alpha = self.IRLS()
         
         
@@ -252,6 +255,7 @@ class LogisticRegression():
         m = Xte.shape[0]
         Yte = np.zeros((m,), dtype=float)
         for i in range(m):
+            print('Predict label %d' %i)
             tmp = np.zeros((self.n,))
             for j in range(self.n):
                 tmp[j] = self.kernel.evaluate(self.Xtr[j], Xte[i])
@@ -278,11 +282,12 @@ class LogisticRegression():
         old_err = 0
         iter = 0
         while (iter < max_iter) & (np.abs(err-old_err) > precision):
-            #print(iter)
+            print(iter)
+            print(np.abs(err-old_err))
             old_err = err
             ridge_regression.train(self.Xtr, z, self.n, self.lambd, self.K, W)
             alpha = ridge_regression.alpha
-            #print(alpha)
+            
             m = self.K.dot(alpha)
             for i in range(self.n):
                 P[i,i] = -self.sigmoid(-self.Ytr[i]*m[i])
