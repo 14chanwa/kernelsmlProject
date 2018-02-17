@@ -243,7 +243,7 @@ class LogisticRegression():
             m = self.K.dot(alpha)
             for i in range(self.n):
                 P[i,i] = -self.sigmoid(-self.Ytr[i]*m[i])
-                W[i,i] = self.sigmoid(m[i])*self.sigmoid(m[i])
+                W[i,i] = self.sigmoid(m[i])*self.sigmoid(-m[i])
                 z[i] = m[i] + self.Ytr[i]/self.sigmoid(-self.Ytr[i]*m[i])
             err = self.distortion(alpha)
             iter += 1
