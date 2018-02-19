@@ -48,7 +48,7 @@ for i in range(len(lambds)):
     logistic_regression = LogisticRegression() 
     logistic_regression.train(Xtr, Ytr, n, lambds[i])
 
-    f = logistic_regression.predict(Xte)
+    f = logistic_regression.predict(Xte, Xte.shape[0])
 
     tmp = Yte == (np.sign(f)+1)/2
     acc[i] = np.sum(tmp) / np.size(tmp)
