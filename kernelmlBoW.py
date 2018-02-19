@@ -20,6 +20,8 @@ Ytr0 = np.genfromtxt('./data/Ytr0.csv', delimiter=',')
 Ytr0 = Ytr0[1:]
 # Get only labels
 Ytr0_labels = Ytr0[:, 1]
+# Map the 0/1 labels to -1/1
+Ytr0_labels = 2*Ytr0_labels-1
 
 # Read test set 1
 Xte0 = np.genfromtxt('./data/Xte0_mat50.csv', delimiter=' ')
@@ -50,6 +52,6 @@ for i in range(len(lambds)):
 
     f = logistic_regression.predict(Xte, Xte.shape[0])
 
-    tmp = Yte == (np.sign(f)+1)/2
+    tmp = Yte == np.sign(f)
     acc[i] = np.sum(tmp) / np.size(tmp)
     print("Accuracy on test with linear kernel logistic regression:", acc[i])
