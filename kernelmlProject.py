@@ -254,6 +254,7 @@ class LogisticRegression():
         if K is None:
             self.K = np.zeros([self.n, self.n], dtype=float)
             for i in range(self.n):
+                print(i)
                 self.K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
                 for j in range(i):
                     self.K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
@@ -355,7 +356,7 @@ plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
 plt.colorbar()
 plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
-plt.scatter(xv[np.abs(res)<1e-1],yv[np.abs(res)<1e-1], color= 'black')
+plt.scatter(xv[np.abs(res)<1e-2],yv[np.abs(res)<1e-2], color= 'black')
 plt.show()
 
 # Test
@@ -364,7 +365,7 @@ Xtr = np.array([[1, 1], [1, 3], [2, 1]]).reshape((3, 2))
 Ytr = np.array([1, -1, 1]).reshape((3,))
 n = Xtr.shape[0]
 log_regression = LogisticRegression(center=True)
-log_regression.train(Xtr, Ytr, n, 0.1)
+log_regression.train(Xtr, Ytr, n, 0.5)
 print(log_regression.predict(np.array([1, 2]).reshape((1, 2)), 1))
 print(log_regression.predict(np.array([1, 2.5]).reshape((1, 2)), 1))
 
@@ -378,7 +379,7 @@ plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
 plt.colorbar()
 plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
-plt.scatter(xv[np.abs(res)<1e-1],yv[np.abs(res)<1e-1], color= 'black')
+plt.scatter(xv[np.abs(res)<1e-2],yv[np.abs(res)<1e-2], color= 'black')
 plt.show()
 
 
@@ -413,7 +414,7 @@ class SVM():
 
         P = matrix(self.K,tc='d')
         q = matrix(-Ytr,tc='d')
-        G = matrix(np.append(np.eye(self.n)*(-Ytr),np.eye(self.n)*(Ytr),axis=0),tc='d')
+        G = matrix(np.append(np.diag(-Ytr.astype(float)),np.diag(Ytr.astype(float)),axis=0),tc='d')
         h = matrix(np.append(np.zeros(self.n),np.ones(self.n,dtype=float)/(2*lambd*self.n),axis=0),tc='d')
         solvers.options['show_progress'] = False
         self.alpha = np.array(solvers.qp(P, q, G, h)['x'])
@@ -451,11 +452,11 @@ plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
 plt.colorbar()
 plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
-#plt.scatter(xv[np.abs(res)<1e-2],yv[np.abs(res)<1e-2], color= 'black')
+plt.scatter(xv[np.abs(res)<1e-2],yv[np.abs(res)<1e-2], color= 'black')
 plt.show()
 
 # Test
-print("Test on 3 vectors + centered")
+print("Test on 3 vectors")
 Xtr = np.array([[1, 1], [1, 3], [2, 1]]).reshape((3, 2))
 Ytr = np.array([1, -1, 1]).reshape((3,))
 n = Xtr.shape[0]
@@ -474,5 +475,5 @@ plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
 plt.colorbar()
 plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
-#plt.scatter(xv[np.abs(res)<1e-1],yv[np.abs(res)<1e-1], color= 'black')
+plt.scatter(xv[np.abs(res)<1e-2],yv[np.abs(res)<1e-2], color= 'black')
 plt.show()    
