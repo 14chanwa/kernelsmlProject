@@ -172,8 +172,9 @@ class RidgeRegression():
             tmp = np.zeros((self.n,))
             for j in range(self.n):
                 tmp[j] = self.kernel.evaluate(self.Xtr[j], Xte[i])
-            tmp = np.multiply(self.alpha, tmp)
-            Yte[i] = np.sum(tmp)
+            #tmp = np.multiply(self.alpha, tmp)
+            #Yte[i] = np.sum(tmp)
+            Yte[i] = tmp.dot(self.alpha)
         return Yte
 
 
@@ -269,8 +270,9 @@ class LogisticRegression():
             tmp = np.zeros((self.n,))
             for j in range(self.n):
                 tmp[j] = self.kernel.evaluate(self.Xtr[j], Xte[i])
-            tmp = np.multiply(self.alpha, tmp)
-            Yte[i] = np.sum(tmp)
+            #tmp = np.multiply(self.alpha, tmp)
+            #Yte[i] = np.sum(tmp)
+            Yte[i] = tmp.dot(self.alpha)
         
         return Yte
 
@@ -414,15 +416,15 @@ class SVM():
         solvers.options['show_progress'] = False
         self.alpha = np.array(solvers.qp(P, q, G, h)['x'])
     
-    def predict(self, Xte):
-        m = Xte.shape[0]
+    def predict(self, Xte, m):
         Yte = np.zeros((m,), dtype=float)
         for i in range(m):
             tmp = np.zeros((self.n,))
             for j in range(self.n):
                 tmp[j] = self.kernel.evaluate(self.Xtr[j], Xte[i])
-            tmp = np.multiply(self.alpha, tmp)
-            Yte[i] = np.sum(tmp)
+            #tmp = np.multiply(self.alpha, tmp)
+            Yte[i] = tmp.dot(self.alpha)
+            #Yte[i] = np.sum(tmp)
         
         return Yte
 
