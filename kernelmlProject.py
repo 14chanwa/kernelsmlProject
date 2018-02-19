@@ -146,7 +146,7 @@ class RidgeRegression():
         
         if self.center:
             self.centeredKernel = CenteredKernel(self.kernel)
-            self.centeredKernel.train(Xtr, n)
+            self.centeredKernel.train(Xtr, n, K)
             self.kernel = self.centeredKernel
         
         self.Xtr = Xtr
@@ -241,7 +241,7 @@ class LogisticRegression():
         print("Centering the Gram matrix")
         if self.center:
             self.centeredKernel = CenteredKernel(self.kernel)
-            self.centeredKernel.train(Xtr, n)
+            self.centeredKernel.train(Xtr, n,K)
             self.kernel = self.centeredKernel
             
   
@@ -386,20 +386,22 @@ plt.show()
 from cvxopt import matrix, solvers
 class SVM():
     
-    def __init__(self, kernel=Linear_kernel(), center=False):
-        self.kernel = kernel
+    def __init__(self, kernel=None, center=False):
+        if kernel is None:
+            self.kernel = Linear_kernel()
+        else:
+            self.kernel = kernel
         self.center = center
     
     def train(self, Xtr, Ytr, n, lambd = 1, K=None):
         
         if self.center:
             self.centeredKernel = CenteredKernel(self.kernel)
-            self.centeredKernel.train(Xtr, n)
+            self.centeredKernel.train(Xtr, n, K)
             self.kernel = self.centeredKernel
             
         self.n = n
         self.Xtr = Xtr
-        self.lambd = lambd
         self.K = K
         if K is None:
             self.K = np.zeros([self.n, self.n], dtype=float)
@@ -435,15 +437,15 @@ Xtr = np.array([[1, 1], [1, 3]]).reshape((2, 2))
 Ytr = np.array([1, -1]).reshape((2,))
     
 svm = SVM()
-svm.train(Xtr, Ytr, n)
-print(svm.predict(np.array([1, 2]).reshape((1, 2))))
-print(svm.predict(np.array([1, 2.5]).reshape((1, 2))))
+svm.train(Xtr, Ytr, n,0.05)
+print(svm.predict(np.array([1, 2]).reshape((1, 2)),1))
+print(svm.predict(np.array([1, 2.5]).reshape((1, 2)),1))
 
 xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
 res = np.zeros(xv.shape)
 for i in range(xv.shape[0]):
     for j in range(xv.shape[1]):
-        res[i, j] = svm.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)))
+        res[i, j] = svm.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)),1)
 
 plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
@@ -459,14 +461,14 @@ Ytr = np.array([1, -1, 1]).reshape((3,))
 n = Xtr.shape[0]
 svm = SVM()
 svm.train(Xtr, Ytr, n)
-print(svm.predict(np.array([1, 2]).reshape((1, 2))))
-print(svm.predict(np.array([1, 2.5]).reshape((1, 2))))
+print(svm.predict(np.array([1, 2]).reshape((1, 2)),1))
+print(svm.predict(np.array([1, 2.5]).reshape((1, 2)),1))
 
 xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
 res = np.zeros(xv.shape)
 for i in range(xv.shape[0]):
     for j in range(xv.shape[1]):
-        res[i, j] = svm.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)))
+        res[i, j] = svm.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)),1)
 
 plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
