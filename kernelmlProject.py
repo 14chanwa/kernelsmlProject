@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
     Linear_kernel
 """
 class Linear_kernel:
+    
+    
     """
     Linear_kernel.evaluate
     Compute x.dot(y)
@@ -27,7 +29,6 @@ class Linear_kernel:
     res: float.
     """
     def evaluate(self, x, y):
-        
         return x.dot(y)
 
 
@@ -35,6 +36,12 @@ class Linear_kernel:
     Gaussian_kernel
 """
 class Gaussian_kernel:
+
+    
+    def __init__(self, gamma):
+        self.gamma = gamma
+    
+    
     """
     Gaussian_kernel.evaluate
     
@@ -47,10 +54,6 @@ class Gaussian_kernel:
     Returns:
     res: float.
     """
-    
-    def __init__(self, gamma):
-        self.gamma = gamma
-    
     def evaluate(self, x, y):
         return np.exp(-self.gamma * np.linalg.norm(x - y)**2) 
 
@@ -78,16 +81,17 @@ class CenteredKernel():
     def train(self, Xtr, n, K=None):
         self.Xtr = Xtr
         self.n = n
-        if K != None:
-            self.eta = np.sum(K.reshape(-1)) / self.n**2
+        if not K is None:
+            self.eta = np.sum(K) / np.power(self.n, 2)
         else:
-            tmp = 0
-            diag = 0
+            tmp = 0.0
+            diag = 0.0
             for i in range(self.n):
                 diag += self.kernel.evaluate(Xtr[i], Xtr[i])
                 for j in range(i):
                     tmp += self.kernel.evaluate(Xtr[i], Xtr[j])
-            self.eta = (2 * tmp + diag) / self.n**2
+            self.eta = (2 * tmp + diag) / np.power(self.n, 2)
+            #print("eta:", self.eta)
     
     
     """
@@ -99,12 +103,13 @@ class CenteredKernel():
         y: object.
     """
     def evaluate(self, x, y):
-        res = self.kernel.evaluate(x, y)
+        tmp = 0.0
         for k in range(self.n):
-            res -= self.kernel.evaluate(self.Xtr[k], x) / self.n
-            res -= self.kernel.evaluate(self.Xtr[k], y) / self.n
-        res += self.eta
-        return res
+            tmp += self.kernel.evaluate(x, self.Xtr[k])
+            tmp += self.kernel.evaluate(y, self.Xtr[k])
+        #print("tmp:", tmp)
+        #print("tmp/n:", tmp / self.n)
+        return self.kernel.evaluate(x, y) - tmp / self.n + self.eta
 
 
 # Test
@@ -130,8 +135,11 @@ print(np.mean(Xc))
 
 class RidgeRegression():
     
-    def __init__(self, kernel=Linear_kernel(), center=False):
-        self.kernel = kernel
+    def __init__(self, kernel=None, center=False):
+        if kernel is None:
+            self.kernel = Linear_kernel()
+        else:
+            self.kernel = kernel
         self.center = center
     
     def train(self, Xtr, Ytr, n, lambd=0.1, K=None, W=None):
@@ -158,8 +166,7 @@ class RidgeRegression():
         tmp = np.linalg.inv(W_sqrt.dot(K).dot(W_sqrt) + lambd * self.n * np.eye(self.n))
         self.alpha = W_sqrt.dot(tmp).dot(W_sqrt).dot(Ytr)
     
-    def predict(self, Xte):
-        m = Xte.shape[0]
+    def predict(self, Xte, m):
         Yte = np.zeros((m,), dtype=float)
         for i in range(m):
             tmp = np.zeros((self.n,))
@@ -176,19 +183,20 @@ Xtr = np.array([[1, 1], [1, 3]]).reshape((2, 2))
 Ytr = np.array([1, -1]).reshape((2,))
 n = Xtr.shape[0]
 ridge_regression = RidgeRegression(center=False)
-ridge_regression.train(Xtr, Ytr, n, 0)
-print(ridge_regression.predict(np.array([1, 2]).reshape((1, 2))))
-print(ridge_regression.predict(np.array([1, 2.5]).reshape((1, 2))))
+ridge_regression.train(Xtr, Ytr, n, 1e-3)
+print(ridge_regression.predict(np.array([1, 2]).reshape((1, 2)), 1))
+print(ridge_regression.predict(np.array([1, 2.5]).reshape((1, 2)), 1))
 
 xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
 res = np.zeros(xv.shape)
 for i in range(xv.shape[0]):
     for j in range(xv.shape[1]):
-        res[i, j] = ridge_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)))
+        res[i, j] = ridge_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)), 1)
 
 plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
 plt.colorbar()
+plt.scatter(xv[np.abs(res)<1e-2],yv[np.abs(res)<1e-2], color= 'black')
 plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
 plt.show()
 
@@ -198,21 +206,21 @@ Xtr = np.array([[1, 1], [1, 3], [2, 1]]).reshape((3, 2))
 Ytr = np.array([1, -1, 1]).reshape((3,))
 n = Xtr.shape[0]
 ridge_regression = RidgeRegression(center=True)
-ridge_regression.train(Xtr, Ytr, n, 0)
-print(ridge_regression.predict(np.array([1, 2]).reshape((1, 2))))
-print(ridge_regression.predict(np.array([1, 2.5]).reshape((1, 2))))
+ridge_regression.train(Xtr, Ytr, n, 1e-4)
+print(ridge_regression.predict(np.array([1, 2]).reshape((1, 2)), 1))
+print(ridge_regression.predict(np.array([1, 2.5]).reshape((1, 2)), 1))
 
 xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
 res = np.zeros(xv.shape)
 for i in range(xv.shape[0]):
     for j in range(xv.shape[1]):
-        res[i, j] = ridge_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)))
+        res[i, j] = ridge_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)), 1)
 
 plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
 plt.colorbar()
 plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
-plt.scatter(xv[np.abs(res)<1e-3],yv[np.abs(res)<1e-3], color= 'black')
+plt.scatter(xv[np.abs(res)<1e-1],yv[np.abs(res)<1e-1], color= 'black')
 
 plt.show()
 
@@ -220,8 +228,11 @@ plt.show()
 class LogisticRegression():
     
     # Maybe better: center=True as default?
-    def __init__(self, kernel=Linear_kernel(), center=False):
-        self.kernel = kernel
+    def __init__(self, kernel=None, center=False):
+        if kernel is None:
+            self.kernel = Linear_kernel()
+        else:
+            self.kernel = kernel
         self.center = center
     
     def train(self, Xtr, Ytr, n, lambd = 1, K = None):
@@ -251,11 +262,10 @@ class LogisticRegression():
         self.alpha = self.IRLS()
         
         
-    def predict(self, Xte):
-        m = Xte.shape[0]
+    def predict(self, Xte, m):
         Yte = np.zeros((m,), dtype=float)
         for i in range(m):
-            print('Predict label %d' %i)
+            #print('Predict label %d' %i)
             tmp = np.zeros((self.n,))
             for j in range(self.n):
                 tmp[j] = self.kernel.evaluate(self.Xtr[j], Xte[i])
@@ -330,19 +340,20 @@ Ytr = np.array([1, -1]).reshape((2,))
     
 log_regression = LogisticRegression(center=True)
 log_regression.train(Xtr, Ytr, n, 0.25)
-print(log_regression.predict(np.array([1, 2]).reshape((1, 2))))
-print(log_regression.predict(np.array([1, 2.5]).reshape((1, 2))))
+print(log_regression.predict(np.array([1, 2]).reshape((1, 2)), 1))
+print(log_regression.predict(np.array([1, 2.5]).reshape((1, 2)), 1))
 
 xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
 res = np.zeros(xv.shape)
 for i in range(xv.shape[0]):
     for j in range(xv.shape[1]):
-        res[i, j] = log_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)))
+        res[i, j] = log_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)), 1)
 
 plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
 plt.colorbar()
 plt.scatter(Xtr[:,0], Xtr[:, 1], color='red')
+plt.scatter(xv[np.abs(res)<1e-1],yv[np.abs(res)<1e-1], color= 'black')
 plt.show()
 
 # Test
@@ -352,14 +363,14 @@ Ytr = np.array([1, -1, 1]).reshape((3,))
 n = Xtr.shape[0]
 log_regression = LogisticRegression(center=True)
 log_regression.train(Xtr, Ytr, n, 0.1)
-print(log_regression.predict(np.array([1, 2]).reshape((1, 2))))
-print(log_regression.predict(np.array([1, 2.5]).reshape((1, 2))))
+print(log_regression.predict(np.array([1, 2]).reshape((1, 2)), 1))
+print(log_regression.predict(np.array([1, 2.5]).reshape((1, 2)), 1))
 
 xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
 res = np.zeros(xv.shape)
 for i in range(xv.shape[0]):
     for j in range(xv.shape[1]):
-        res[i, j] = log_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)))
+        res[i, j] = log_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)), 1)
 
 plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
