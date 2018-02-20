@@ -39,6 +39,33 @@ class Kernel:
             for j in range(n):
                 K_t[i, j] = self.evaluate(Xte[i], Xtr[j])
         return K_t
+    
+    
+    """
+        Kernel.compute_matrix_K
+        
+        Compute K from data.
+        
+        Parameters
+        ----------
+        Xtr: list(object). 
+            Training data.
+        n: int.
+            Length of Xtr.
+        
+        Returns
+        ----------
+        K: np.array.
+    """
+    def compute_matrix_K(self, Xtr, n):
+        K = np.zeros([n, n], dtype=float)
+        for i in range(n):
+            K[i, i] = self.evaluate(Xtr[i], Xtr[i])
+            for j in range(i):
+                K[i, j] = self.evaluate(Xtr[i], Xtr[j])
+                K[j, i] = K[i, j]
+        return K
+
 
 """
     Linear_kernel
@@ -89,34 +116,7 @@ class Gaussian_kernel(Kernel):
     """
     def evaluate(self, x, y):
         return np.exp(-self.gamma * np.sum(np.power(x - y, 2))) 
-
-
-"""
-    compute_matrix_K
     
-    Compute K from data and kernel.
-    
-    Parameters
-    ----------
-    Xtr: list(object). 
-        Training data.
-    kernel: Kernel. 
-        Kernel instance.
-    n: int.
-        Length of Xtr.
-    
-    Returns
-    ----------
-    K: np.array.
-"""
-def compute_matrix_K(Xtr, kernel, n):
-    K = np.zeros([n, n], dtype=float)
-    for i in range(n):
-        K[i, i] = kernel.evaluate(Xtr[i], Xtr[i])
-        for j in range(i):
-            K[i, j] = kernel.evaluate(Xtr[i], Xtr[j])
-            K[j, i] = K[i, j]
-    return K
 
 
 #%%
@@ -148,13 +148,12 @@ class CenteredKernel(Kernel):
         self.Xtr = Xtr
         self.n = n
         if K is None:
-            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
+            # Compute the non-centered Gram matrix
+            self.K = self.kernel.compute_matrix_K(self.Xtr, self.n)
         else:
             self.K = K
         
-        
         self.eta = np.sum(self.K) / np.power(self.n, 2)
-        
         
         # Store centered kernel
         U = np.ones(self.K.shape) / self.n
@@ -234,6 +233,8 @@ class CenteredKernel(Kernel):
                 K_new[i, j] = self.kernel.evaluate(Xte[i-self.n], Xte[j-self.n])
 
     
+        # TODO TODO TODO
+        # Very bad
         K_t = np.zeros((m, self.n))
         for i in range(m):
             for j in range(self.n):
@@ -241,6 +242,7 @@ class CenteredKernel(Kernel):
                     np.sum(K_new[i+self.n,:self.n] + K_new[j,:self.n]) / self.n + \
                     self.eta
         
+        del K_new
         print("end")
         
         return K_t
@@ -265,6 +267,7 @@ Xc = np.zeros((100,))
 for i in range(Xc.size):
     Xc[i] = centeredKernel.evaluate(np.array([1]).reshape((1, 1)), X[i])
 print(np.mean(Xc))
+
 
 #%%
 
@@ -314,10 +317,11 @@ class RegressionInstance():
             Kernel Gram matrix or None.
     """
     def init_train(self, K):
+        
         if K is None:
             if self.verbose:
                 print("Build K...")
-            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
+            self.K = self.kernel.compute_matrix_K(self.Xtr, self.n)
             if self.verbose:
                 print("end")
         else:
