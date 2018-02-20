@@ -8,7 +8,7 @@ Created on Tue Feb 20 02:02:07 2018
 import numpy as np
 
 
-def generate_submission_file(classifier1, classifier2, classifier3, use_bow=True):
+def generate_submission_file(classifier0, classifier1, classifier2, use_bow=True):
     if use_bow:
         Xte0 = np.genfromtxt('./data/Xte0_mat50.csv', delimiter=' ')
         Xte1 = np.genfromtxt('./data/Xte1_mat50.csv', delimiter=' ')
@@ -19,9 +19,9 @@ def generate_submission_file(classifier1, classifier2, classifier3, use_bow=True
         Xte2 = np.genfromtxt('./data/Xte2.csv', delimiter=' ')
     
     # Generate labels
-    Yte0 = np.array(np.sign(classifier1.predict(Xte0, Xte0.shape[0])), dtype=int)
-    Yte1 = np.array(np.sign(classifier2.predict(Xte1, Xte1.shape[0])), dtype=int)
-    Yte2 = np.array(np.sign(classifier3.predict(Xte2, Xte2.shape[0])), dtype=int)
+    Yte0 = np.array(np.sign(classifier0.predict(Xte0, Xte0.shape[0])), dtype=int)
+    Yte1 = np.array(np.sign(classifier1.predict(Xte1, Xte1.shape[0])), dtype=int)
+    Yte2 = np.array(np.sign(classifier2.predict(Xte2, Xte2.shape[0])), dtype=int)
 
     # Map {-1, 1} back to {0, 1}
     Yte0[Yte0 == -1] = 0

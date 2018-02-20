@@ -55,7 +55,29 @@ class Gaussian_kernel:
     res: float.
     """
     def evaluate(self, x, y):
-        return np.exp(-self.gamma * np.linalg.norm(x - y)**2) 
+        return np.exp(-self.gamma * np.sum(np.power(x - y, 2))) 
+
+
+"""
+    compute_matrix_K
+    
+    Compute K from data and kernel.
+    
+    Parameters:
+    Xtr: np.array. Training data.
+    kernel: Kernel. Kernel instance.
+    
+    Returns:
+    K: np.array.
+"""
+def compute_matrix_K(Xtr, kernel, n):
+    K = np.zeros([n, n], dtype=float)
+    for i in range(n):
+        K[i, i] = kernel.evaluate(Xtr[i], Xtr[i])
+        for j in range(i):
+            K[i, j] = kernel.evaluate(Xtr[i], Xtr[j])
+            K[j, i] = K[i, j]
+    return K
 
 
 #%%
@@ -81,17 +103,21 @@ class CenteredKernel():
     def train(self, Xtr, n, K=None):
         self.Xtr = Xtr
         self.n = n
-        if not K is None:
-            self.eta = np.sum(K) / np.power(self.n, 2)
+        if K is None:
+            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
         else:
-            tmp = 0.0
-            diag = 0.0
-            for i in range(self.n):
-                diag += self.kernel.evaluate(Xtr[i], Xtr[i])
-                for j in range(i):
-                    tmp += self.kernel.evaluate(Xtr[i], Xtr[j])
-            self.eta = (2 * tmp + diag) / np.power(self.n, 2)
-            #print("eta:", self.eta)
+            self.K = K
+        self.eta = np.sum(self.K) / np.power(self.n, 2)
+        
+#        else:
+#            tmp = 0.0
+#            diag = 0.0
+#            for i in range(self.n):
+#                diag += self.kernel.evaluate(Xtr[i], Xtr[i])
+#                for j in range(i):
+#                    tmp += self.kernel.evaluate(Xtr[i], Xtr[j])
+#            self.eta = (2 * tmp + diag) / np.power(self.n, 2)
+#            #print("eta:", self.eta)
     
     
     """
@@ -109,6 +135,7 @@ class CenteredKernel():
             tmp += self.kernel.evaluate(y, self.Xtr[k])
         #print("tmp:", tmp)
         #print("tmp/n:", tmp / self.n)
+        #print("centered")
         return self.kernel.evaluate(x, y) - tmp / self.n + self.eta
 
 
@@ -153,17 +180,24 @@ class RidgeRegression():
         self.n = n
         if W is None:
             W = np.eye(self.n,dtype=float)
+            W_sqrt = W
+        else:
+            W_sqrt = np.sqrt(W)
 
         if K is None:
-            K = np.zeros([self.n, self.n], dtype=float)
-            for i in range(self.n):
-                K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
-                for j in range(i):
-                    K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
-                    K[j, i] = K[i, j]
+            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
+        else:
+            self.K = K
+
+#            K = np.zeros([self.n, self.n], dtype=float)
+#            for i in range(self.n):
+#                K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
+#                for j in range(i):
+#                    K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
+#                    K[j, i] = K[i, j]
+#        self.K = K
         
-        W_sqrt = np.sqrt(W)
-        tmp = np.linalg.inv(W_sqrt.dot(K).dot(W_sqrt) + lambd * self.n * np.eye(self.n))
+        tmp = np.linalg.inv(W_sqrt.dot(self.K).dot(W_sqrt) + lambd * self.n * np.eye(self.n))
         self.alpha = W_sqrt.dot(tmp).dot(W_sqrt).dot(Ytr)
     
     def predict(self, Xte, m):
@@ -252,13 +286,14 @@ class LogisticRegression():
         self.K = K
         print("Build the Gram Matrix")
         if K is None:
-            self.K = np.zeros([self.n, self.n], dtype=float)
-            for i in range(self.n):
-                print(i)
-                self.K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
-                for j in range(i):
-                    self.K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
-                    self.K[j, i] = self.K[i, j]
+            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
+#            self.K = np.zeros([self.n, self.n], dtype=float)
+#            for i in range(self.n):
+#                print(i)
+#                self.K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
+#                for j in range(i):
+#                    self.K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
+#                    self.K[j, i] = self.K[i, j]
 
         print("Start IRLS")
         self.alpha = self.IRLS()
@@ -405,12 +440,14 @@ class SVM():
         self.Xtr = Xtr
         self.K = K
         if K is None:
-            self.K = np.zeros([self.n, self.n], dtype=float)
-            for i in range(self.n):
-                self.K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
-                for j in range(i):
-                    self.K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
-                    self.K[j, i] = self.K[i, j]
+            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
+            
+#            self.K = np.zeros([self.n, self.n], dtype=float)
+#            for i in range(self.n):
+#                self.K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
+#                for j in range(i):
+#                    self.K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
+#                    self.K[j, i] = self.K[i, j]
 
         P = matrix(self.K,tc='d')
         q = matrix(-Ytr,tc='d')
