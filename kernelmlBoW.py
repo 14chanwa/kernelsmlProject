@@ -21,7 +21,7 @@ Ytr0 = Ytr0[1:]
 # Get only labels
 Ytr0_labels = Ytr0[:, 1]
 # Map the 0/1 labels to -1/1
-Ytr0_labels = 2*Ytr0_labels-1
+Ytr0_labels = 2*(Ytr0_labels-0.5)
 
 # Read test set 1
 Xte0 = np.genfromtxt('./data/Xte0_mat50.csv', delimiter=' ')
@@ -114,8 +114,8 @@ for k in range(nb_trials):
     Xtr, Ytr, Xte, Yte = split_train_test(Xtr0[permut,],Ytr0_labels[permut],prop=0.8) 
     n = Xtr.shape[0]
 
-    gamma = 120
-    lambd = 30
+    gamma = 120 # 120
+    lambd = 30 # 30
 
     svm = SVM(Gaussian_kernel(gamma)) 
     svm.train(Xtr, Ytr, n, 30)
@@ -126,3 +126,36 @@ for k in range(nb_trials):
     print("Accuracy on test with gaussian kernel (gamma = ", gamma, ") SVM:",acc)
 
 print(avg_acc/nb_trials)
+
+#%%
+# C = 1 gamma = 55
+# Comparison: same parameters?
+
+N = Xtr0.shape[0] * 0.8
+
+C = 1
+lambd = 1 / (2 * N * C)
+gamma = 55 # 120
+
+print("lambd:", lambd)
+print("gamma:", gamma)
+
+permut = np.random.permutation(int(N))
+Xtr, Ytr, Xte, Yte = split_train_test(Xtr0[permut,],Ytr0_labels[permut],prop=0.8) 
+n = Xtr.shape[0]
+
+svm = SVM(Gaussian_kernel(gamma)) 
+svm.train(Xtr, Ytr, n, 30)
+f = svm.predict(Xte, Xte.shape[0])
+tmp = Yte == np.sign(f)
+
+print("Accuracy on test with gaussian kernel (gamma = ", gamma, ") SVM:",acc)
+
+import sklearn
+
+clf = sklearn.svm.SVC(kernel='rbf', gamma=55, C=1)
+clf.fit(Xtr, Ytr)
+f_skl = clf.predict(Xte)
+tmp = Yte == f_skl
+accuracy = np.sum(tmp) / np.size(tmp)
+print("Accuracy on test set with gaussian rbf SVM:", accuracy) # 0.634375
