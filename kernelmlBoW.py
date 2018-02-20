@@ -155,7 +155,8 @@ print("Accuracy on test with gaussian kernel (gamma = ", gamma, ") SVM:",accurac
 print("Generating test results file")
 
 from generate_test_results import generate_submission_file
-generate_submission_file(svm, use_bow=True)
+generate_submission_file(svm, svm, svm, use_bow=True) # should NOT be written
+# like this since test sets 0, 1, 2 are from different datasets
 
 #%%
 
