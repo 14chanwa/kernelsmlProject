@@ -11,22 +11,53 @@ import matplotlib.pyplot as plt
 
 #%%
 
+class Kernel:
+    
+    """
+        Kernel.get_test_K_evaluations
+        Gets the matrix K_t = [K(t_i, x_j)] where t_i is the ith test sample 
+        and x_j is the jth training sample.
+        
+        Parameters
+        ----------
+        Xtr: list(object). 
+            Training data.
+        n: int. 
+            Length of Xtr.
+        Xte: list(object). 
+            Test data.
+        m: int. 
+            Length of Xte.
+            
+        Returns
+        ----------
+        K_t: np.array (shape=(m,n)).
+    """
+    def get_test_K_evaluations(self, Xtr, n, Xte, m):
+        K_t = np.zeros((m, n))
+        for i in range(m):
+            for j in range(n):
+                K_t[i, j] = self.evaluate(Xte[i], Xtr[j])
+        return K_t
+
 """
     Linear_kernel
 """
-class Linear_kernel:
+class Linear_kernel(Kernel):
     
     
     """
-    Linear_kernel.evaluate
-    Compute x.dot(y)
-    
-    Parameters:
-    x: np.array.
-    y: np.array.
-    
-    Returns:
-    res: float.
+        Linear_kernel.evaluate
+        Compute x.dot(y)
+        
+        Parameters
+        ----------
+        x: np.array.
+        y: np.array.
+        
+        Returns
+        ----------
+        res: float.
     """
     def evaluate(self, x, y):
         return x.dot(y.transpose())
@@ -35,7 +66,7 @@ class Linear_kernel:
 """
     Gaussian_kernel
 """
-class Gaussian_kernel:
+class Gaussian_kernel(Kernel):
 
     
     def __init__(self, gamma):
@@ -43,16 +74,18 @@ class Gaussian_kernel:
     
     
     """
-    Gaussian_kernel.evaluate
-    
-    Compute exp(- gamma * norm(x, y)^2).
-    
-    Parameters:
-    x: np.array.
-    y: np.array.
-    
-    Returns:
-    res: float.
+        Gaussian_kernel.evaluate
+        
+        Compute exp(- gamma * norm(x, y)^2).
+        
+        Parameters
+        ----------
+        x: np.array.
+        y: np.array.
+        
+        Returns
+        ----------
+        res: float.
     """
     def evaluate(self, x, y):
         return np.exp(-self.gamma * np.sum(np.power(x - y, 2))) 
@@ -63,11 +96,17 @@ class Gaussian_kernel:
     
     Compute K from data and kernel.
     
-    Parameters:
-    Xtr: np.array. Training data.
-    kernel: Kernel. Kernel instance.
+    Parameters
+    ----------
+    Xtr: list(object). 
+        Training data.
+    kernel: Kernel. 
+        Kernel instance.
+    n: int.
+        Length of Xtr.
     
-    Returns:
+    Returns
+    ----------
     K: np.array.
 """
 def compute_matrix_K(Xtr, kernel, n):
@@ -81,12 +120,13 @@ def compute_matrix_K(Xtr, kernel, n):
 
 
 #%%
+    
 
 """
     CenteredKernel
     Class that implements computing centered kernel values.
 """
-class CenteredKernel():
+class CenteredKernel(Kernel):
     
     def __init__(self, kernel):
         self.kernel = kernel
@@ -95,10 +135,14 @@ class CenteredKernel():
         CenteredKernel.train
         Train the instance to center kernel values.
         
-        Parameters:
-        Xtr: list-like. Training data, of the form X = [[x1], ...].
-        n: int. Number of lines of Xtr.
-        K: np.array(shape=(n, n)). Optional: kernel matrix if available.    
+        Parameters
+        ----------
+        Xtr: list(object). 
+            Training data, of the form X = [[x1], ...].
+        n: int. 
+            Number of lines of Xtr.
+        K: np.array(shape=(n, n)). 
+            Optional. Kernel Gram matrix if available.    
     """
     def train(self, Xtr, n, K=None):
         self.Xtr = Xtr
@@ -117,6 +161,14 @@ class CenteredKernel():
         self.centered_K = (np.eye(self.n) - U).dot(self.K).dot(np.eye(self.n) - U)
 
     
+    """
+        CenteredKernelernel.get_centered_K
+        Gets the centered Gram matrix.
+        
+        Returns
+        ----------
+        centered_K: np.array.
+    """
     def get_centered_K(self):
         return self.centered_K
     
@@ -125,9 +177,15 @@ class CenteredKernel():
         CenteredKernel.evaluate
         Compute the centered kernel value of x, y.
         
-        Parameters:
+        Parameters
+        ----------
         x: object.
         y: object.
+        
+        Returns
+        ----------
+        res: float. 
+            Evaluation of the centered kernel value of x, y.
     """
     def evaluate(self, x, y):
         tmp = 0.0
@@ -138,6 +196,55 @@ class CenteredKernel():
         #print("tmp/n:", tmp / self.n)
         #print("centered")
         return self.kernel.evaluate(x, y) - tmp / self.n + self.eta
+    
+    """
+        CenteredKernel.get_test_K_evaluations
+        Compute centered values of the matrix K_t = [K(t_i, x_j)] where t_i is 
+        the ith test sample and x_j is the jth training sample.
+        
+        Parameters
+        ----------
+        Xtr: list(object). 
+            Training data.
+        n: int. 
+            Length of Xtr.
+        Xte: list(object). 
+            Test data.
+        m: int. 
+            Length of Xte.
+            
+        Returns
+        ----------
+        K_t: np.array (shape=(m,n)).
+    """
+    def get_test_K_evaluations(self, Xtr, n, Xte, m):
+        
+        print("Called get_test_K_evaluations")
+        
+        # Matrix with train and test values
+        K_new = np.zeros((self.n+m, self.n+m))
+        K_new[:self.n,:self.n] = self.K
+        
+        # Complete matrix
+        for i in range(self.n, self.n+m):
+            for j in range(self.n):
+                K_new[i, j] = self.kernel.evaluate(Xte[i-self.n], self.Xtr[j])
+                K_new[j, i] = K_new[i, j]
+            for j in range(self.n, self.n+m):
+                K_new[i, j] = self.kernel.evaluate(Xte[i-self.n], Xte[j-self.n])
+
+    
+        K_t = np.zeros((m, self.n))
+        for i in range(m):
+            for j in range(self.n):
+                K_t[i, j] = K_new[self.n+i, j] - \
+                    np.sum(K_new[i+self.n,:self.n] + K_new[j,:self.n]) / self.n + \
+                    self.eta
+        
+        print("end")
+        
+        return K_t
+
 
 
 # Test
@@ -161,23 +268,52 @@ print(np.mean(Xc))
 
 #%%
 
-class RidgeRegression():
+"""
+    RegressionInstance
+    Base class for an instance of regression problem solver.
+"""
+class RegressionInstance():
     
-    def __init__(self, kernel=None, center=False, verbose=True):
-        if kernel is None:
-            self.kernel = Linear_kernel()
-        else:
-            self.kernel = kernel
-        self.center = center
-        
-        self.verbose = verbose
     
-    def train(self, Xtr, Ytr, n, lambd=0.1, K=None, W=None):
+    """
+        RegressionInstance.predict
+        Generic prediction function: given test data, return prediction Y.
         
-        self.Xtr = Xtr
-        self.n = n
+        Parameters
+        ----------
+        Xte: list(object). 
+            Test data.
+        m: int. 
+            Length of Xte.
         
+        Returns
+        ----------
+        Y: np.array (shape=(m,))
         
+    """
+    def predict(self, Xte, m):
+        if self.verbose:
+            print("Predict...")
+            
+        K_t = self.kernel.get_test_K_evaluations(self.Xtr, self.n, Xte, m)
+        Yte = K_t.dot(self.alpha.reshape((self.alpha.size,1))).reshape(-1)
+        
+        if self.verbose:
+            print("end")
+        
+        return Yte
+
+
+    """
+        RegressionInstance.init_train
+        Builds self.K or/and its centered version.
+        
+        Parameters
+        ----------
+        K: np.array (shape=(n,n)). 
+            Kernel Gram matrix or None.
+    """
+    def init_train(self, K):
         if K is None:
             if self.verbose:
                 print("Build K...")
@@ -200,6 +336,51 @@ class RidgeRegression():
             self.K = self.centeredKernel.get_centered_K() 
             if self.verbose:
                 print("end")
+
+
+"""
+    RidgeRegression
+    Implements ridge regression.
+"""
+class RidgeRegression(RegressionInstance):
+    
+    def __init__(self, kernel=None, center=False, verbose=True):
+        if kernel is None:
+            self.kernel = Linear_kernel()
+        else:
+            self.kernel = kernel
+        self.center = center
+        
+        self.verbose = verbose
+    
+    
+    """
+        RidgeRegression.train
+        Fits internal vector alpha given training data.
+        
+        Parameters
+        ----------
+        Xtr: list(object). 
+            Training data.
+        Ytr: np.array (shape=(n,)). 
+            Training targets.
+        n: int. 
+            Length of Xtr.
+        lambd=0.1: float. 
+            Optional. Regularization parameter.
+        K=None: np.array (shape=(n,n)). 
+            Optional. Gram matrix if available.
+        W=None: np.array (shape=(n,n), diagonal). 
+            Optional. Weights.        
+    """
+    def train(self, Xtr, Ytr, n, lambd=0.1, K=None, W=None):
+        
+        self.Xtr = Xtr
+        self.n = n
+        
+        # Call function from super that builds K if not built and initializes
+        # self.K (centered or not)
+        self.init_train(K)
         
         
         if W is None:
@@ -208,35 +389,16 @@ class RidgeRegression():
         else:
             W_sqrt = np.sqrt(W)
         
-#            K = np.zeros([self.n, self.n], dtype=float)
-#            for i in range(self.n):
-#                K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
-#                for j in range(i):
-#                    K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
-#                    K[j, i] = K[i, j]
-#        self.K = K
-        
         tmp = np.linalg.inv(W_sqrt.dot(self.K).dot(W_sqrt) + lambd * self.n * np.eye(self.n))
         self.alpha = W_sqrt.dot(tmp).dot(W_sqrt).dot(Ytr)
-    
-    def predict(self, Xte, m):
-        if self.verbose:
-            print("Predict...")
-        
-        Yte = np.zeros((m,), dtype=float)
-        for i in range(m):
-            tmp = np.zeros((self.n,))
-            for j in range(self.n):
-                tmp[j] = self.kernel.evaluate(self.Xtr[j], Xte[i])
-            #tmp = np.multiply(self.alpha, tmp)
-            #Yte[i] = np.sum(tmp)
-            Yte[i] = tmp.dot(self.alpha)
-        
-        if self.verbose:
-            print("end")
-        
-        return Yte
 
+
+        """
+            RidgeRegression.predict
+            Inherited from RegressionInstance.
+            predict(self, Xte, m)
+        """
+        
 
 # Test
 print("Test on 2 vectors")
@@ -284,8 +446,13 @@ plt.scatter(xv[np.abs(res)<1e-1],yv[np.abs(res)<1e-1], color= 'black')
 
 plt.show()
 
-#%%      
-class LogisticRegression():
+#%%
+
+"""
+    LogisticRegression
+    Implements logistic regression.
+"""
+class LogisticRegression(RegressionInstance):
     
     # Maybe better: center=True as default?
     def __init__(self, kernel=None, center=False, verbose=True):
@@ -297,78 +464,57 @@ class LogisticRegression():
         
         self.verbose = verbose
     
+    
+    """
+        LogisticRegression.train
+        Fits internal vector alpha given training data.
+        
+        Parameters
+        ----------
+        Xtr: list(object). 
+            Training data.
+        Ytr: np.array (shape=(n,)). 
+            Training targets.
+        n: int. 
+            Length of Xtr.
+        lambd=1: float. 
+            Optional. Regularization parameter.
+        K=None: np.array (shape=(n,n)). 
+            Optional. Gram matrix if available.       
+    """
     def train(self, Xtr, Ytr, n, lambd = 1, K = None):
-        
-        
-#        print("Centering the Gram matrix")
-#        if self.center:
-#            self.centeredKernel = CenteredKernel(self.kernel)
-#            self.centeredKernel.train(Xtr, n,K)
-#            self.kernel = self.centeredKernel
+
   
         self.n = n
         self.Xtr = Xtr
         self.Ytr = Ytr
         self.lambd = lambd
-#        self.K = K
+
         
-#        print("Build the Gram Matrix")
-#        if K is None:
-#            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
-#            self.K = np.zeros([self.n, self.n], dtype=float)
-#            for i in range(self.n):
-#                print(i)
-#                self.K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
-#                for j in range(i):
-#                    self.K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
-#                    self.K[j, i] = self.K[i, j]
+        # Call function from super that builds K if not built and initializes
+        # self.K (centered or not)
+        self.init_train(K)
         
-        if K is None:
-            if self.verbose:
-                print("Build K...")
-            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
-            if self.verbose:
-                print("end")
-        else:
-            self.K = K
-        
-        
-        if self.center:
-            if self.verbose:
-                print("Center K...")
-            self.centeredKernel = CenteredKernel(self.kernel)
-            self.centeredKernel.train(self.Xtr, self.n, self.K)
-            self.kernel = self.centeredKernel
-            # replace K by centered kernel
-            # it is not important to replace K since centering a centered kernel
-            # leaves it unchanged.. in principle
-            self.K = self.centeredKernel.get_centered_K() 
-            if self.verbose:
-                print("end")
         
         if self.verbose:
             print("Start IRLS")
         self.alpha = self.IRLS()
-        
-        
-    def predict(self, Xte, m):
-        if self.verbose:
-            print("Predict...")
-        
-        Yte = np.zeros((m,), dtype=float)
-        for i in range(m):
-            #print('Predict label %d' %i)
-            tmp = np.zeros((self.n,))
-            for j in range(self.n):
-                tmp[j] = self.kernel.evaluate(self.Xtr[j], Xte[i])
-            #tmp = np.multiply(self.alpha, tmp)
-            #Yte[i] = np.sum(tmp)
-            Yte[i] = tmp.dot(self.alpha)
-        
-        if self.verbose:
-            print("end")
-        return Yte
 
+
+    """
+        LogisticRegression.IRLS
+        Solves the logistic optimization problem using IRLS.
+        
+        Parameters
+        ----------
+        precision = 1e-20: float.
+        max_iter = 1000: int.
+        
+        Returns
+        ----------
+        alpha: np.array (shape=(n,)).
+            Solution vector.
+    """
     def IRLS(self, precision = 1e-20, max_iter = 1000):
 
         alpha = np.zeros(self.n,dtype = float)
@@ -420,7 +566,15 @@ class LogisticRegression():
         for i in range(self.n):
             J += self.log_loss(self.Ytr[i]*self.K[i,].dot(alpha)) / self.n
         return J
+    
+    
+    """
+        LogisticRegression.predict
+        Inherited from RegressionInstance.
+        predict(self, Xte, m)
+    """
         
+    
 # Test
 print("Test on 2 vectors")
 n = 2
@@ -478,7 +632,7 @@ plt.show()
 
 #%%
 from cvxopt import matrix, solvers
-class SVM():
+class SVM(RegressionInstance):
     
     def __init__(self, kernel=None, center=False, verbose=True):
         if kernel is None:
@@ -490,47 +644,13 @@ class SVM():
         self.verbose = verbose
     
     def train(self, Xtr, Ytr, n, lambd = 1, K=None):
-        
-#        if self.center:
-#            self.centeredKernel = CenteredKernel(self.kernel)
-#            self.centeredKernel.train(Xtr, n, K)
-#            self.kernel = self.centeredKernel
             
         self.n = n
         self.Xtr = Xtr
-#        self.K = K
-#        if K is None:
-#            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
         
-        if K is None:
-            if self.verbose:
-                print("Build K...")
-            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
-            if self.verbose:
-                print("end")
-        else:
-            self.K = K
-        
-        
-        if self.center:
-            if self.verbose:
-                print("Center K...")
-            self.centeredKernel = CenteredKernel(self.kernel)
-            self.centeredKernel.train(self.Xtr, self.n, self.K)
-            self.kernel = self.centeredKernel
-            # replace K by centered kernel
-            # it is not important to replace K since centering a centered kernel
-            # leaves it unchanged.. in principle
-            self.K = self.centeredKernel.get_centered_K() 
-            if self.verbose:
-                print("end")
-            
-#            self.K = np.zeros([self.n, self.n], dtype=float)
-#            for i in range(self.n):
-#                self.K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
-#                for j in range(i):
-#                    self.K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
-#                    self.K[j, i] = self.K[i, j]
+        # Call function from super that builds K if not built and initializes
+        # self.K (centered or not)
+        self.init_train(K)
 
         P = matrix(self.K,tc='d')
         q = matrix(-Ytr,tc='d')
@@ -539,23 +659,14 @@ class SVM():
         solvers.options['show_progress'] = False
         self.alpha = np.array(solvers.qp(P, q, G, h)['x'])
     
-    def predict(self, Xte, m):
-        if self.verbose:
-            print("Predict...")
-        
-        Yte = np.zeros((m,), dtype=float)
-        for i in range(m):
-            tmp = np.zeros((self.n,))
-            for j in range(self.n):
-                tmp[j] = self.kernel.evaluate(self.Xtr[j], Xte[i])
-            #tmp = np.multiply(self.alpha, tmp)
-            Yte[i] = tmp.dot(self.alpha)
-            #Yte[i] = np.sum(tmp)
-        
-        if self.verbose:
-            print("end")
-        
-        return Yte
+    
+    """
+        SVM.predict
+        Inherited from RegressionInstance.
+        predict(self, Xte, m)
+    """
+    
+    
 
 # Test
 print("Test on 2 vectors")
