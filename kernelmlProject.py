@@ -29,7 +29,7 @@ class Linear_kernel:
     res: float.
     """
     def evaluate(self, x, y):
-        return x.dot(y)
+        return x.dot(y.transpose())
 
 
 """
@@ -107,17 +107,18 @@ class CenteredKernel():
             self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
         else:
             self.K = K
+        
+        
         self.eta = np.sum(self.K) / np.power(self.n, 2)
         
-#        else:
-#            tmp = 0.0
-#            diag = 0.0
-#            for i in range(self.n):
-#                diag += self.kernel.evaluate(Xtr[i], Xtr[i])
-#                for j in range(i):
-#                    tmp += self.kernel.evaluate(Xtr[i], Xtr[j])
-#            self.eta = (2 * tmp + diag) / np.power(self.n, 2)
-#            #print("eta:", self.eta)
+        
+        # Store centered kernel
+        U = np.ones(self.K.shape) / self.n
+        self.centered_K = (np.eye(self.n) - U).dot(self.K).dot(np.eye(self.n) - U)
+
+    
+    def get_centered_K(self):
+        return self.centered_K
     
     
     """
@@ -162,33 +163,51 @@ print(np.mean(Xc))
 
 class RidgeRegression():
     
-    def __init__(self, kernel=None, center=False):
+    def __init__(self, kernel=None, center=False, verbose=True):
         if kernel is None:
             self.kernel = Linear_kernel()
         else:
             self.kernel = kernel
         self.center = center
+        
+        self.verbose = verbose
     
     def train(self, Xtr, Ytr, n, lambd=0.1, K=None, W=None):
         
-        if self.center:
-            self.centeredKernel = CenteredKernel(self.kernel)
-            self.centeredKernel.train(Xtr, n, K)
-            self.kernel = self.centeredKernel
-        
         self.Xtr = Xtr
         self.n = n
+        
+        
+        if K is None:
+            if self.verbose:
+                print("Build K...")
+            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
+            if self.verbose:
+                print("end")
+        else:
+            self.K = K
+        
+        
+        if self.center:
+            if self.verbose:
+                print("Center K...")
+            self.centeredKernel = CenteredKernel(self.kernel)
+            self.centeredKernel.train(self.Xtr, self.n, self.K)
+            self.kernel = self.centeredKernel
+            # replace K by centered kernel
+            # it is not important to replace K since centering a centered kernel
+            # leaves it unchanged.. in principle
+            self.K = self.centeredKernel.get_centered_K() 
+            if self.verbose:
+                print("end")
+        
+        
         if W is None:
             W = np.eye(self.n,dtype=float)
             W_sqrt = W
         else:
             W_sqrt = np.sqrt(W)
-
-        if K is None:
-            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
-        else:
-            self.K = K
-
+        
 #            K = np.zeros([self.n, self.n], dtype=float)
 #            for i in range(self.n):
 #                K[i, i] = self.kernel.evaluate(Xtr[i], Xtr[i])
@@ -201,6 +220,9 @@ class RidgeRegression():
         self.alpha = W_sqrt.dot(tmp).dot(W_sqrt).dot(Ytr)
     
     def predict(self, Xte, m):
+        if self.verbose:
+            print("Predict...")
+        
         Yte = np.zeros((m,), dtype=float)
         for i in range(m):
             tmp = np.zeros((self.n,))
@@ -209,6 +231,10 @@ class RidgeRegression():
             #tmp = np.multiply(self.alpha, tmp)
             #Yte[i] = np.sum(tmp)
             Yte[i] = tmp.dot(self.alpha)
+        
+        if self.verbose:
+            print("end")
+        
         return Yte
 
 
@@ -223,10 +249,11 @@ print(ridge_regression.predict(np.array([1, 2]).reshape((1, 2)), 1))
 print(ridge_regression.predict(np.array([1, 2.5]).reshape((1, 2)), 1))
 
 xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
-res = np.zeros(xv.shape)
-for i in range(xv.shape[0]):
-    for j in range(xv.shape[1]):
-        res[i, j] = ridge_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)), 1)
+
+print(np.concatenate((xv.reshape((xv.shape[0]*yv.shape[0],1)), yv.reshape((xv.shape[0]*yv.shape[0],1))), axis=1).shape)
+
+m = xv.shape[0]*yv.shape[0]
+res = ridge_regression.predict(np.concatenate((xv.reshape((m,1)), yv.reshape((m,1))), axis=1), m).reshape(xv.shape)
 
 plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
@@ -246,10 +273,8 @@ print(ridge_regression.predict(np.array([1, 2]).reshape((1, 2)), 1))
 print(ridge_regression.predict(np.array([1, 2.5]).reshape((1, 2)), 1))
 
 xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
-res = np.zeros(xv.shape)
-for i in range(xv.shape[0]):
-    for j in range(xv.shape[1]):
-        res[i, j] = ridge_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)), 1)
+m = xv.shape[0]*yv.shape[0]
+res = ridge_regression.predict(np.concatenate((xv.reshape((m,1)), yv.reshape((m,1))), axis=1), m).reshape(xv.shape)
 
 plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
@@ -263,30 +288,33 @@ plt.show()
 class LogisticRegression():
     
     # Maybe better: center=True as default?
-    def __init__(self, kernel=None, center=False):
+    def __init__(self, kernel=None, center=False, verbose=True):
         if kernel is None:
             self.kernel = Linear_kernel()
         else:
             self.kernel = kernel
         self.center = center
+        
+        self.verbose = verbose
     
     def train(self, Xtr, Ytr, n, lambd = 1, K = None):
         
-        print("Centering the Gram matrix")
-        if self.center:
-            self.centeredKernel = CenteredKernel(self.kernel)
-            self.centeredKernel.train(Xtr, n,K)
-            self.kernel = self.centeredKernel
-            
+        
+#        print("Centering the Gram matrix")
+#        if self.center:
+#            self.centeredKernel = CenteredKernel(self.kernel)
+#            self.centeredKernel.train(Xtr, n,K)
+#            self.kernel = self.centeredKernel
   
         self.n = n
         self.Xtr = Xtr
         self.Ytr = Ytr
         self.lambd = lambd
-        self.K = K
-        print("Build the Gram Matrix")
-        if K is None:
-            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
+#        self.K = K
+        
+#        print("Build the Gram Matrix")
+#        if K is None:
+#            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
 #            self.K = np.zeros([self.n, self.n], dtype=float)
 #            for i in range(self.n):
 #                print(i)
@@ -294,12 +322,39 @@ class LogisticRegression():
 #                for j in range(i):
 #                    self.K[i, j] = self.kernel.evaluate(Xtr[i], Xtr[j])
 #                    self.K[j, i] = self.K[i, j]
-
-        print("Start IRLS")
+        
+        if K is None:
+            if self.verbose:
+                print("Build K...")
+            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
+            if self.verbose:
+                print("end")
+        else:
+            self.K = K
+        
+        
+        if self.center:
+            if self.verbose:
+                print("Center K...")
+            self.centeredKernel = CenteredKernel(self.kernel)
+            self.centeredKernel.train(self.Xtr, self.n, self.K)
+            self.kernel = self.centeredKernel
+            # replace K by centered kernel
+            # it is not important to replace K since centering a centered kernel
+            # leaves it unchanged.. in principle
+            self.K = self.centeredKernel.get_centered_K() 
+            if self.verbose:
+                print("end")
+        
+        if self.verbose:
+            print("Start IRLS")
         self.alpha = self.IRLS()
         
         
     def predict(self, Xte, m):
+        if self.verbose:
+            print("Predict...")
+        
         Yte = np.zeros((m,), dtype=float)
         for i in range(m):
             #print('Predict label %d' %i)
@@ -310,6 +365,8 @@ class LogisticRegression():
             #Yte[i] = np.sum(tmp)
             Yte[i] = tmp.dot(self.alpha)
         
+        if self.verbose:
+            print("end")
         return Yte
 
     def IRLS(self, precision = 1e-20, max_iter = 1000):
@@ -325,7 +382,7 @@ class LogisticRegression():
             z[i] = self.K[i,].dot(alpha) - self.Ytr[i]*P[i,i]/W[i,i]
             
         #z = self.K.dot(alpha) - np.linalg.inv(W).dot(P).dot(self.Ytr)
-        ridge_regression = RidgeRegression(center=False)
+        ridge_regression = RidgeRegression(center=False, verbose=False)
         err = 1e12
         old_err = 0
         iter = 0
@@ -345,7 +402,10 @@ class LogisticRegression():
             if err - old_err > 1e-10:
                 print("Distortion is going up!")
             iter += 1
-        print("IRLS converged in %d iterations" %iter)
+        
+        if self.verbose:
+            print("IRLS converged in %d iterations" %iter)
+        
         return alpha
 
         
@@ -382,10 +442,9 @@ print(log_regression.predict(np.array([1, 2]).reshape((1, 2)), 1))
 print(log_regression.predict(np.array([1, 2.5]).reshape((1, 2)), 1))
 
 xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
-res = np.zeros(xv.shape)
-for i in range(xv.shape[0]):
-    for j in range(xv.shape[1]):
-        res[i, j] = log_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)), 1)
+
+m = xv.shape[0]*yv.shape[0]
+res = log_regression.predict(np.concatenate((xv.reshape((m,1)), yv.reshape((m,1))), axis=1), m).reshape(xv.shape)
 
 plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
@@ -405,10 +464,9 @@ print(log_regression.predict(np.array([1, 2]).reshape((1, 2)), 1))
 print(log_regression.predict(np.array([1, 2.5]).reshape((1, 2)), 1))
 
 xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
-res = np.zeros(xv.shape)
-for i in range(xv.shape[0]):
-    for j in range(xv.shape[1]):
-        res[i, j] = log_regression.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)), 1)
+
+m = xv.shape[0]*yv.shape[0]
+res = log_regression.predict(np.concatenate((xv.reshape((m,1)), yv.reshape((m,1))), axis=1), m).reshape(xv.shape)
 
 plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
@@ -422,25 +480,50 @@ plt.show()
 from cvxopt import matrix, solvers
 class SVM():
     
-    def __init__(self, kernel=None, center=False):
+    def __init__(self, kernel=None, center=False, verbose=True):
         if kernel is None:
             self.kernel = Linear_kernel()
         else:
             self.kernel = kernel
         self.center = center
+        
+        self.verbose = verbose
     
     def train(self, Xtr, Ytr, n, lambd = 1, K=None):
         
-        if self.center:
-            self.centeredKernel = CenteredKernel(self.kernel)
-            self.centeredKernel.train(Xtr, n, K)
-            self.kernel = self.centeredKernel
+#        if self.center:
+#            self.centeredKernel = CenteredKernel(self.kernel)
+#            self.centeredKernel.train(Xtr, n, K)
+#            self.kernel = self.centeredKernel
             
         self.n = n
         self.Xtr = Xtr
-        self.K = K
+#        self.K = K
+#        if K is None:
+#            self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
+        
         if K is None:
+            if self.verbose:
+                print("Build K...")
             self.K = compute_matrix_K(self.Xtr, self.kernel, self.n)
+            if self.verbose:
+                print("end")
+        else:
+            self.K = K
+        
+        
+        if self.center:
+            if self.verbose:
+                print("Center K...")
+            self.centeredKernel = CenteredKernel(self.kernel)
+            self.centeredKernel.train(self.Xtr, self.n, self.K)
+            self.kernel = self.centeredKernel
+            # replace K by centered kernel
+            # it is not important to replace K since centering a centered kernel
+            # leaves it unchanged.. in principle
+            self.K = self.centeredKernel.get_centered_K() 
+            if self.verbose:
+                print("end")
             
 #            self.K = np.zeros([self.n, self.n], dtype=float)
 #            for i in range(self.n):
@@ -457,6 +540,9 @@ class SVM():
         self.alpha = np.array(solvers.qp(P, q, G, h)['x'])
     
     def predict(self, Xte, m):
+        if self.verbose:
+            print("Predict...")
+        
         Yte = np.zeros((m,), dtype=float)
         for i in range(m):
             tmp = np.zeros((self.n,))
@@ -465,6 +551,9 @@ class SVM():
             #tmp = np.multiply(self.alpha, tmp)
             Yte[i] = tmp.dot(self.alpha)
             #Yte[i] = np.sum(tmp)
+        
+        if self.verbose:
+            print("end")
         
         return Yte
 
@@ -480,10 +569,9 @@ print(svm.predict(np.array([1, 2]).reshape((1, 2)),1))
 print(svm.predict(np.array([1, 2.5]).reshape((1, 2)),1))
 
 xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
-res = np.zeros(xv.shape)
-for i in range(xv.shape[0]):
-    for j in range(xv.shape[1]):
-        res[i, j] = svm.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)),1)
+
+m = xv.shape[0]*yv.shape[0]
+res = svm.predict(np.concatenate((xv.reshape((m,1)), yv.reshape((m,1))), axis=1), m).reshape(xv.shape)
 
 plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
@@ -503,10 +591,9 @@ print(svm.predict(np.array([1, 2]).reshape((1, 2)),1))
 print(svm.predict(np.array([1, 2.5]).reshape((1, 2)),1))
 
 xv, yv = np.meshgrid(np.arange(0, 5, 0.1), np.arange(0, 5, 0.1), sparse=False, indexing='xy')
-res = np.zeros(xv.shape)
-for i in range(xv.shape[0]):
-    for j in range(xv.shape[1]):
-        res[i, j] = svm.predict(np.array([xv[i, j], yv[i, j]]).reshape((1, 2)),1)
+
+m = xv.shape[0]*yv.shape[0]
+res = svm.predict(np.concatenate((xv.reshape((m,1)), yv.reshape((m,1))), axis=1), m).reshape(xv.shape)
 
 plt.axis('equal')
 plt.scatter(xv, yv, c=res, s=100)
