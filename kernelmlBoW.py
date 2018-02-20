@@ -133,7 +133,7 @@ print(avg_acc/nb_trials)
 
 N = Xtr0.shape[0] * 0.8
 
-C = 1
+C = 0.1
 lambd = 1 / (2 * N * C)
 gamma = 55 # 120
 
@@ -148,8 +148,16 @@ svm = SVM(Gaussian_kernel(gamma))
 svm.train(Xtr, Ytr, n, 30)
 f = svm.predict(Xte, Xte.shape[0])
 tmp = Yte == np.sign(f)
+accuracy = np.sum(tmp) / np.size(tmp)
 
-print("Accuracy on test with gaussian kernel (gamma = ", gamma, ") SVM:",acc)
+print("Accuracy on test with gaussian kernel (gamma = ", gamma, ") SVM:",accuracy)
+
+print("Generating test results file")
+
+from generate_test_results import generate_submission_file
+generate_submission_file(svm, use_bow=True)
+
+#%%
 
 import sklearn
 
