@@ -289,7 +289,10 @@ class LogisticRegression(AlgorithmInstance):
 
 #%%
     
-
+"""
+    SVM
+    Implements Support Vector Machine.
+"""
 class SVM(AlgorithmInstance):
     
     def __init__(self, kernel=None, center=False, verbose=True):
@@ -301,6 +304,23 @@ class SVM(AlgorithmInstance):
         
         self.verbose = verbose
     
+    """
+        SVM.train
+        Fits internal vector alpha given training data.
+        
+        Parameters
+        ----------
+        Xtr: list(object). 
+            Training data.
+        Ytr: np.array (shape=(n,)). 
+            Training targets.
+        n: int. 
+            Length of Xtr.
+        lambd=1: float. 
+            Optional. Regularization parameter.
+        K=None: np.array (shape=(n,n)). 
+            Optional. Gram matrix if available.       
+    """
     def train(self, Xtr, Ytr, n, lambd = 1, K=None):
             
         self.n = n
