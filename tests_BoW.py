@@ -6,15 +6,16 @@ Created on Sat Feb 17 16:41:59 2018
 @author: imke_mayer
 """
 
-from kernelsmlProject import *
+from kernelsmlProject.kernels import * 
+from kernelsmlProject.algorithms import *
 
 import numpy as np
 
 #%%
-# Read training set 1
+# Read training set 0
 Xtr0 = np.genfromtxt('./data/Xtr0_mat50.csv', delimiter=' ')
 
-# Read training labels 1
+# Read training labels 0
 Ytr0 = np.genfromtxt('./data/Ytr0.csv', delimiter=',')
 # Discard first line
 Ytr0 = Ytr0[1:]
@@ -23,9 +24,40 @@ Ytr0_labels = Ytr0[:, 1]
 # Map the 0/1 labels to -1/1
 Ytr0_labels = 2*(Ytr0_labels-0.5)
 
-# Read test set 1
+# Read test set 0
 Xte0 = np.genfromtxt('./data/Xte0_mat50.csv', delimiter=' ')
 
+
+# Read training set 1
+Xtr1 = np.genfromtxt('./data/Xtr1_mat50.csv', delimiter=' ')
+
+# Read training labels 1
+Ytr1 = np.genfromtxt('./data/Ytr1.csv', delimiter=',')
+# Discard first line
+Ytr1 = Ytr1[1:]
+# Get only labels
+Ytr1_labels = Ytr1[:, 1]
+# Map the 0/1 labels to -1/1
+Ytr1_labels = 2*(Ytr1_labels-0.5)
+
+# Read test set 1
+Xte1 = np.genfromtxt('./data/Xte1_mat50.csv', delimiter=' ')
+
+
+# Read training set 2
+Xtr2 = np.genfromtxt('./data/Xtr2_mat50.csv', delimiter=' ')
+
+# Read training labels 2
+Ytr2 = np.genfromtxt('./data/Ytr2.csv', delimiter=',')
+# Discard first line
+Ytr2 = Ytr2[1:]
+# Get only labels
+Ytr2_labels = Ytr2[:, 1]
+# Map the 0/1 labels to -1/1
+Ytr2_labels = 2*(Ytr2_labels-0.5)
+
+# Read test set 1
+Xte2 = np.genfromtxt('./data/Xte2_mat50.csv', delimiter=' ')
 
 #%%
 # To obtain different training and test sets for cross validation step, include
@@ -134,12 +166,15 @@ n = Xtr.shape[0]
 #gammas = np.logspace(np.log10(10), np.log10(200), 10)
 
 # Second on finer grid
-gammas = np.linspace(110, 160, 20)
+gammas = np.linspace(110, 200, 10)
 acc = np.zeros(len(gammas))
 
+C = 1
+lambd = 1 / (2 * n * C)
+
 for i in range(len(gammas)):
-    svm = SVM(Gaussian_kernel(gammas[i])) 
-    svm.train(Xtr, Ytr, n, 30)
+    svm = SVM(Gaussian_kernel(gammas[i]),center=True) 
+    svm.train(Xtr, Ytr, n, lambd)
 
     f = svm.predict(Xte, Xte.shape[0])
 
@@ -151,54 +186,110 @@ for i in range(len(gammas)):
 
 nb_trials = 10
 avg_acc = 0.0
+tr_avg_acc = 0.0
 for k in range(nb_trials):
     N = Xtr0.shape[0]
     permut = np.random.permutation(N)
     Xtr, Ytr, Xte, Yte = split_train_test(Xtr0[permut,],Ytr0_labels[permut],prop=0.8) 
     n = Xtr.shape[0]
 
-    gamma = 120 # 120
-    lambd = 30 # 30
+    gamma = 30 #    (30, 120) for Xtr0; (165-170 or 185, 5 or 160-168) for Xtr1,  (10, ) for Xtr2
+    C = 1 #        (1, 0.1) for Xtr0; (1, 5) for Xtr1,    (5, ) for Xtr2
+    lambd = 1 / (2 * n * C)
 
-    svm = SVM(Gaussian_kernel(gamma)) 
-    svm.train(Xtr, Ytr, n, 30)
-    f = svm.predict(Xte, Xte.shape[0])
-    tmp = Yte == np.sign(f)
+    svm = SVM(Gaussian_kernel(gamma), center=True) 
+    svm.train(Xtr, Ytr, n, lambd)
+    fte = svm.predict(Xte, Xte.shape[0])
+    tmp = Yte == np.sign(fte)
     acc = np.sum(tmp) / np.size(tmp)
     avg_acc += acc
     print("Accuracy on test with gaussian kernel (gamma = ", gamma, ") SVM:",acc)
+    
+    ftr = svm.get_training_results()
+    tmp = Ytr == np.sign(ftr)
+    acc = np.sum(tmp) / np.size(tmp)
+    tr_avg_acc += acc
+    print("Accuracy on training with gaussian kernel (gamma = ", gamma, ") SVM:",acc)
 
 print(avg_acc/nb_trials)
+print(tr_avg_acc/nb_trials)
 
 #%%
 # C = 1 gamma = 55
 # Comparison: same parameters?
 
-N = Xtr0.shape[0] * 0.8
+N0 = Xtr0.shape[0] * 0.8
 
 C = 0.1
-lambd = 1 / (2 * N * C)
-gamma = 55 # 120
+lambd = 1 / (2 * N0 * C)
+gamma = 120 # 55 # 120
 
 print("lambd:", lambd)
 print("gamma:", gamma)
 
-permut = np.random.permutation(int(N))
-Xtr, Ytr, Xte, Yte = split_train_test(Xtr0[permut,],Ytr0_labels[permut],prop=0.8) 
-n = Xtr.shape[0]
+permut = np.random.permutation(int(N0))
+Xtr0_, Ytr0_, Xte0_, Yte0_ = split_train_test(Xtr0[permut,],Ytr0_labels[permut],prop=0.8) 
+n = Xtr0_.shape[0]
 
-svm = SVM(Gaussian_kernel(gamma), center=True) 
-svm.train(Xtr, Ytr, n, 30)
-f = svm.predict(Xte, Xte.shape[0])
-tmp = Yte == np.sign(f)
+svm0 = SVM(Gaussian_kernel(gamma), center=True) 
+svm0.train(Xtr0_, Ytr0_, n, 30)
+f = svm0.predict(Xte0_, Xte0_.shape[0])
+tmp = Yte0_ == np.sign(f)
 accuracy = np.sum(tmp) / np.size(tmp)
 
-print("Accuracy on test with gaussian kernel (gamma = ", gamma, ") SVM:",accuracy)
+print("Dataset 0: Accuracy on test with gaussian kernel (gamma = ", gamma, ") SVM:",accuracy)
+
+#
+N1 = Xtr1.shape[0] * 0.8
+
+C = 0.1
+lambd = 1 / (2 * N1 * C)
+gamma = 100 # 55 # 120
+
+print("lambd:", lambd)
+print("gamma:", gamma)
+
+permut = np.random.permutation(int(N1))
+Xtr1_, Ytr1_, Xte1_, Yte1_ = split_train_test(Xtr1[permut,],Ytr1_labels[permut],prop=0.8) 
+n = Xtr1_.shape[0]
+
+svm1 = SVM(Gaussian_kernel(gamma), center=True) 
+svm1.train(Xtr1_, Ytr1_, n, 30)
+f = svm1.predict(Xte1_, Xte1_.shape[0])
+tmp = Yte1_ == np.sign(f)
+accuracy = np.sum(tmp) / np.size(tmp)
+
+print("Dataset 1: Accuracy on test with gaussian kernel (gamma = ", gamma, ") SVM:",accuracy)
+
+
+#
+N2 = Xtr2.shape[0] * 0.8
+
+C = 0.1
+lambd = 1 / (2 * N2 * C)
+gamma = 120 # 55 # 120
+
+print("lambd:", lambd)
+print("gamma:", gamma)
+
+permut = np.random.permutation(int(N2))
+Xtr2_, Ytr2_, Xte2_, Yte2_ = split_train_test(Xtr2[permut,],Ytr2_labels[permut],prop=0.8) 
+n = Xtr2_.shape[0]
+
+svm2 = SVM(Gaussian_kernel(gamma), center=True) 
+svm2.train(Xtr2_, Ytr2_, n, 30)
+f = svm2.predict(Xte2_, Xte2_.shape[0])
+tmp = Yte2_ == np.sign(f)
+accuracy = np.sum(tmp) / np.size(tmp)
+
+print("Dataset 2: Accuracy on test with gaussian kernel (gamma = ", gamma, ") SVM:",accuracy)
+
+
 
 print(">>> Generating test results file...")
 
 from generate_test_results import generate_submission_file
-generate_submission_file(svm, svm, svm, use_bow=True) # should NOT be written
+generate_submission_file(svm0, svm1, svm2, use_bow=True) # should NOT be written
 # like this since test sets 0, 1, 2 are from different datasets
 
 print("end")
