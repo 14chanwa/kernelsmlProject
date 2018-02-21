@@ -16,7 +16,7 @@ Implements machine learning algorithms. Instances should have methods:
 from abc import ABC, abstractmethod
 import numpy as np
 from cvxopt import matrix, solvers
-from kernelsmlProject.kernels import *
+from kernelsmlProject.kernels import Linear_kernel, CenteredKernel
 
 
 #%%
@@ -88,7 +88,7 @@ class AlgorithmInstance(ABC):
         if K is None:
             if self.verbose:
                 print("Build K...")
-            self.K = self.kernel.compute_matrix_K(self.Xtr, self.n)
+            self.K = self.kernel.compute_matrix_K(self.Xtr, self.n, self.verbose)
             if self.verbose:
                 print("end")
         else:
@@ -106,7 +106,7 @@ class AlgorithmInstance(ABC):
                 self.centeredKernel = CenteredKernel(self.kernel)
             
             # Train the centered kernel
-            self.centeredKernel.train(self.Xtr, self.n, self.K)
+            self.centeredKernel.train(self.Xtr, self.n, self.K, self.verbose)
             self.kernel = self.centeredKernel
             # replace K by centered kernel
             # it is not important to replace K since centering a centered kernel
