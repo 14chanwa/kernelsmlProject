@@ -70,10 +70,20 @@ class AlgorithmInstance(ABC):
         
         Parameters
         ----------
+        Xtr: list(object). 
+            Training data.
+        Ytr: np.array (shape=(n,)). 
+            Training targets.
+        n: int. 
+            Length of Xtr.
         K: np.array (shape=(n,n)). 
             Kernel Gram matrix or None.
     """
-    def init_train(self, K):
+    def init_train(self, Xtr, Ytr, n, K):
+        
+        self.Xtr = Xtr
+        self.Ytr = Ytr
+        self.n = n
         
         if K is None:
             if self.verbose:
@@ -104,6 +114,11 @@ class AlgorithmInstance(ABC):
             self.K = self.centeredKernel.get_centered_K() 
             if self.verbose:
                 print("end")
+    
+    
+    def get_training_results(self):
+        f = np.sign(self.K.dot(self.alpha.reshape((self.alpha.size, 1))))
+        return f.reshape(-1)
 
 
 #%%
@@ -146,12 +161,10 @@ class RidgeRegression(AlgorithmInstance):
     """
     def train(self, Xtr, Ytr, n, lambd=0.1, K=None, W=None):
         
-        self.Xtr = Xtr
-        self.n = n
         
         # Call function from super that builds K if not built and initializes
         # self.K (centered or not)
-        self.init_train(K)
+        self.init_train(Xtr, Ytr, n, K)
         
         
         if W is None:
@@ -203,16 +216,13 @@ class LogisticRegression(AlgorithmInstance):
     """
     def train(self, Xtr, Ytr, n, lambd = 1, K = None):
 
-  
-        self.n = n
-        self.Xtr = Xtr
-        self.Ytr = Ytr
+
         self.lambd = lambd
 
         
         # Call function from super that builds K if not built and initializes
         # self.K (centered or not)
-        self.init_train(K)
+        self.init_train(Xtr, Ytr, n, K)
         
         
         if self.verbose:
@@ -322,13 +332,11 @@ class SVM(AlgorithmInstance):
             Optional. Gram matrix if available.       
     """
     def train(self, Xtr, Ytr, n, lambd = 1, K=None):
-            
-        self.n = n
-        self.Xtr = Xtr
+
         
         # Call function from super that builds K if not built and initializes
         # self.K (centered or not)
-        self.init_train(K)
+        self.init_train(Xtr, Ytr, n, K)
 
         P = matrix(self.K,tc='d')
         q = matrix(-Ytr,tc='d')
