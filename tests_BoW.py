@@ -6,7 +6,7 @@ Created on Sat Feb 17 16:41:59 2018
 @author: imke_mayer
 """
 
-from kernelmlProject import *
+from kernelsmlProject import *
 
 import numpy as np
 
@@ -67,7 +67,7 @@ Xtr, Ytr, Xte, Yte = split_train_test(Xtr0,Ytr0_labels,prop=0.5)
 n = Xtr.shape[0]
 lambds = np.logspace(np.log10(0.1), np.log10(100), 10)
 acc = np.zeros(len(lambds))
-logistic_regression = LogisticRegression(center=False) 
+logistic_regression = LogisticRegression(center=True) 
 for i in range(len(lambds)):
     # LocisticRegression(center=True) would probably be better but problem with CenteredKernel
     if i == 0:
@@ -79,8 +79,28 @@ for i in range(len(lambds)):
 
     tmp = Yte == np.sign(f)
     acc[i] = np.sum(tmp) / np.size(tmp)
-    print("Accuracy on test with linear kernel logistic regression:", acc[i])
-    
+    print("Accuracy on test with centered linear kernel logistic regression:", acc[i])
+
+
+#%%
+Xtr, Ytr, Xte, Yte = split_train_test(Xtr0,Ytr0_labels,prop=0.5) 
+  
+n = Xtr.shape[0]
+lambds = np.logspace(np.log10(0.001), np.log10(10), 10)
+acc = np.zeros(len(lambds))
+logistic_regression = LogisticRegression(Gaussian_kernel(20), center=True) 
+for i in range(len(lambds)):
+    # LocisticRegression(center=True) would probably be better but problem with CenteredKernel
+    if i == 0:
+        logistic_regression.train(Xtr, Ytr, n, lambds[i])
+    else:
+        logistic_regression.train(Xtr, Ytr, n, lambds[i],logistic_regression.K)
+
+    f = logistic_regression.predict(Xte, Xte.shape[0])
+
+    tmp = Yte == np.sign(f)
+    acc[i] = np.sum(tmp) / np.size(tmp)
+    print("Accuracy on test with centered gaussian kernel logistic regression:", acc[i])
     
 #%%
 Xtr, Ytr, Xte, Yte = split_train_test(Xtr0,Ytr0_labels,prop=0.8) 
@@ -95,7 +115,7 @@ lambds = np.logspace(np.log10(0.1), np.log10(100), 10)
 acc = np.zeros(len(lambds))
 
 for i in range(len(lambds)):
-    svm = SVM(Gaussian_kernel(38.0)) 
+    svm = SVM(Gaussian_kernel(38.0), center=True) 
     svm.train(Xtr, Ytr, n, lambds[i])
 
     f = svm.predict(Xte, Xte.shape[0])
