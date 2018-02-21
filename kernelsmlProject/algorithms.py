@@ -2,10 +2,18 @@
 """
 Created on Wed Feb 21 17:03:51 2018
 
+
+Implements machine learning algorithms. Instances should have methods:
+    train(self, Xtr, Ytr, n): trains the model according to training data.
+    predict(self, Xte, m): predicts regression/classification values for test
+        data.
+
+
 @author: Quentin
 """
 
 
+from abc import ABC, abstractmethod
 import numpy as np
 from cvxopt import matrix, solvers
 from kernelsmlProject.kernels import *
@@ -15,14 +23,19 @@ from kernelsmlProject.kernels import *
 
 
 """
-    RegressionInstance
+    AlgorithmInstance
     Base class for an instance of regression problem solver.
 """
-class RegressionInstance():
+class AlgorithmInstance(ABC):
+    
+    
+    @abstractmethod
+    def train(self, Xtr, Ytr, n):
+        pass
     
     
     """
-        RegressionInstance.predict
+        AlgorithmInstance.predict
         Generic prediction function: given test data, return prediction Y.
         
         Parameters
@@ -52,7 +65,7 @@ class RegressionInstance():
 
 
     """
-        RegressionInstance.init_train
+        AlgorithmInstance.init_train
         Builds self.K or/and its centered version.
         
         Parameters
@@ -100,7 +113,7 @@ class RegressionInstance():
     RidgeRegression
     Implements ridge regression.
 """
-class RidgeRegression(RegressionInstance):
+class RidgeRegression(AlgorithmInstance):
     
     def __init__(self, kernel=None, center=False, verbose=True):
         if kernel is None:
@@ -149,13 +162,6 @@ class RidgeRegression(RegressionInstance):
         
         tmp = np.linalg.inv(W_sqrt.dot(self.K).dot(W_sqrt) + lambd * self.n * np.eye(self.n))
         self.alpha = W_sqrt.dot(tmp).dot(W_sqrt).dot(Ytr)
-
-
-        """
-            RidgeRegression.predict
-            Inherited from RegressionInstance.
-            predict(self, Xte, m)
-        """
     
 
 #%%
@@ -165,7 +171,7 @@ class RidgeRegression(RegressionInstance):
     LogisticRegression
     Implements logistic regression.
 """
-class LogisticRegression(RegressionInstance):
+class LogisticRegression(AlgorithmInstance):
     
     # Maybe better: center=True as default?
     def __init__(self, kernel=None, center=False, verbose=True):
@@ -279,19 +285,12 @@ class LogisticRegression(RegressionInstance):
         for i in range(self.n):
             J += self.log_loss(self.Ytr[i]*self.K[i,].dot(alpha)) / self.n
         return J
-    
-    
-    """
-        LogisticRegression.predict
-        Inherited from RegressionInstance.
-        predict(self, Xte, m)
-    """
 
 
 #%%
     
 
-class SVM(RegressionInstance):
+class SVM(AlgorithmInstance):
     
     def __init__(self, kernel=None, center=False, verbose=True):
         if kernel is None:
@@ -317,13 +316,4 @@ class SVM(RegressionInstance):
         h = matrix(np.append(np.zeros(self.n),np.ones(self.n,dtype=float)/(2*lambd*self.n),axis=0),tc='d')
         solvers.options['show_progress'] = False
         self.alpha = np.array(solvers.qp(P, q, G, h)['x'])
-    
-    
-    """
-        SVM.predict
-        Inherited from RegressionInstance.
-        predict(self, Xte, m)
-    """
-
-
 

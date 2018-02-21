@@ -2,15 +2,33 @@
 """
 Created on Wed Feb 21 16:56:16 2018
 
+
+Implements kernels and associated functions. A kernel instance should be an
+object with methods:
+    evaluate(self, x, y): get kernel value for points (x, y).
+    compute_matrix_K(self, Xtr, n): get training kernel Gram matrix.
+    get_test_K_evaluations(self, Xtr, n, Xte, m, verbose=True): get train
+        vs test kernel Gram matrix.
+
+
 @author: Quentin
 """
 
+
+from abc import ABC, abstractmethod
 import numpy as np
 
 
 #%%
 
-class Kernel:
+
+class Kernel(ABC):
+    
+    
+    @abstractmethod
+    def evaluate(self, x, y):
+        pass
+    
     
     """
         Kernel.get_test_K_evaluations
@@ -73,57 +91,6 @@ class Kernel:
                 K[i, j] = self.evaluate(Xtr[i], Xtr[j])
                 K[j, i] = K[i, j]
         return K
-
-
-"""
-    Linear_kernel
-"""
-class Linear_kernel(Kernel):
-    
-    
-    """
-        Linear_kernel.evaluate
-        Compute x.dot(y)
-        
-        Parameters
-        ----------
-        x: np.array.
-        y: np.array.
-        
-        Returns
-        ----------
-        res: float.
-    """
-    def evaluate(self, x, y):
-        return x.dot(y.transpose())
-
-
-"""
-    Gaussian_kernel
-"""
-class Gaussian_kernel(Kernel):
-
-    
-    def __init__(self, gamma):
-        self.gamma = gamma
-    
-    
-    """
-        Gaussian_kernel.evaluate
-        Compute exp(- gamma * norm(x, y)^2).
-        
-        Parameters
-        ----------
-        x: np.array.
-        y: np.array.
-        
-        Returns
-        ----------
-        res: float.
-    """
-    def evaluate(self, x, y):
-        return np.exp(-self.gamma * np.sum(np.power(x - y, 2))) 
-    
 
 
 #%%
@@ -247,3 +214,57 @@ class CenteredKernel(Kernel):
             print("end")
         
         return K_t
+
+
+#%%
+
+
+"""
+    Linear_kernel
+"""
+class Linear_kernel(Kernel):
+    
+    
+    """
+        Linear_kernel.evaluate
+        Compute x.dot(y)
+        
+        Parameters
+        ----------
+        x: np.array.
+        y: np.array.
+        
+        Returns
+        ----------
+        res: float.
+    """
+    def evaluate(self, x, y):
+        return x.dot(y.transpose())
+
+
+"""
+    Gaussian_kernel
+"""
+class Gaussian_kernel(Kernel):
+
+    
+    def __init__(self, gamma):
+        self.gamma = gamma
+    
+    
+    """
+        Gaussian_kernel.evaluate
+        Compute exp(- gamma * norm(x, y)^2).
+        
+        Parameters
+        ----------
+        x: np.array.
+        y: np.array.
+        
+        Returns
+        ----------
+        res: float.
+    """
+    def evaluate(self, x, y):
+        return np.exp(-self.gamma * np.sum(np.power(x - y, 2))) 
+    
