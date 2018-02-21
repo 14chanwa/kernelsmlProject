@@ -17,6 +17,8 @@ class Kernel:
         Kernel.get_test_K_evaluations
         Gets the matrix K_t = [K(t_i, x_j)] where t_i is the ith test sample 
         and x_j is the jth training sample.
+        NON CENTERED KERNEL VALUES version. The centered version is defined
+        in derived class CenteredKernel.
         
         Parameters
         ----------
@@ -33,17 +35,24 @@ class Kernel:
         ----------
         K_t: np.array (shape=(m,n)).
     """
-    def get_test_K_evaluations(self, Xtr, n, Xte, m):
+    def get_test_K_evaluations(self, Xtr, n, Xte, m, verbose=True):
+        
+        if verbose:
+            print("Called get_test_K_evaluations (NON CENTERED VERSION)")
+        
         K_t = np.zeros((m, n))
         for i in range(m):
             for j in range(n):
                 K_t[i, j] = self.evaluate(Xte[i], Xtr[j])
+        
+        if verbose:
+            print("end")
+        
         return K_t
     
     
     """
         Kernel.compute_matrix_K
-        
         Compute K from data.
         
         Parameters
@@ -102,7 +111,6 @@ class Gaussian_kernel(Kernel):
     
     """
         Gaussian_kernel.evaluate
-        
         Compute exp(- gamma * norm(x, y)^2).
         
         Parameters
@@ -200,6 +208,8 @@ class CenteredKernel(Kernel):
         CenteredKernel.get_test_K_evaluations
         Compute centered values of the matrix K_t = [K(t_i, x_j)] where t_i is 
         the ith test sample and x_j is the jth training sample.
+        CENTERED KERNEL VALUES version. 
+        Overrides Kernel.get_test_K_evaluations.
         
         Parameters
         ----------
@@ -216,34 +226,26 @@ class CenteredKernel(Kernel):
         ----------
         K_t: np.array (shape=(m,n)).
     """
-    def get_test_K_evaluations(self, Xtr, n, Xte, m):
+    def get_test_K_evaluations(self, Xtr, n, Xte, m, verbose=True):
         
-        print("Called get_test_K_evaluations")
+        if verbose:
+            print("Called get_test_K_evaluations (CENTERED VERSION)")
         
-        # Matrix with train and test values
-        K_new = np.zeros((self.n+m, self.n+m))
-        K_new[:self.n,:self.n] = self.K
-        
-        # Complete matrix
-        for i in range(self.n, self.n+m):
-            for j in range(self.n):
-                K_new[i, j] = self.kernel.evaluate(Xte[i-self.n], self.Xtr[j])
-                K_new[j, i] = K_new[i, j]
-            for j in range(self.n, self.n+m):
-                K_new[i, j] = self.kernel.evaluate(Xte[i-self.n], Xte[j-self.n])
-
+        # Get the non-centered K test
+        K_t_nc = self.kernel.get_test_K_evaluations(Xtr, n, Xte, m, verbose)
     
-        # TODO TODO TODO
-        # Very bad
-        K_t = np.zeros((m, self.n))
-        for i in range(m):
-            for j in range(self.n):
-                K_t[i, j] = K_new[self.n+i, j] - \
-                    np.sum(K_new[i+self.n,:self.n] + K_new[j,:self.n]) / self.n + \
-                    self.eta
+        # The new K_t is the non-centered matrix
+        #   + 1/n * sum_l(K_{k, l}) where k is test index and l is train index
+        #   + 1/n * sum_l(K_{l, j}) where l and j are train indices
+        #   + 1/n^2 * sum_{l, l'}(K_{l, l'}) where l, l' are train indices
+        #   (the latter quantity was stored in self.eta)
+        K_t = K_t_nc + (-1/self.n) * ( \
+                K_t_nc.dot(np.ones((n,n))) + \
+                np.ones((m, n)).dot(self.K))
+        K_t += self.eta
         
-        del K_new
-        print("end")
+        if verbose:
+            print("end")
         
         return K_t
 
@@ -298,7 +300,8 @@ class RegressionInstance():
         if self.verbose:
             print("Predict...")
             
-        K_t = self.kernel.get_test_K_evaluations(self.Xtr, self.n, Xte, m)
+        K_t = self.kernel.get_test_K_evaluations(self.Xtr, self.n, Xte, m,\
+                                                 self.verbose)
         Yte = K_t.dot(self.alpha.reshape((self.alpha.size,1))).reshape(-1)
         
         if self.verbose:
@@ -331,7 +334,14 @@ class RegressionInstance():
         if self.center:
             if self.verbose:
                 print("Center K...")
-            self.centeredKernel = CenteredKernel(self.kernel)
+            
+            # Major issue solved: do NOT center an already centered kernel
+            try:
+                self.centeredKernel
+            except AttributeError:
+                self.centeredKernel = CenteredKernel(self.kernel)
+            
+            # Train the centered kernel
             self.centeredKernel.train(self.Xtr, self.n, self.K)
             self.kernel = self.centeredKernel
             # replace K by centered kernel

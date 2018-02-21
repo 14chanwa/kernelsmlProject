@@ -44,6 +44,29 @@ Xtr, Ytr, Xte, Yte = split_train_test(Xtr0,Ytr0_labels,prop=0.5)
 n = Xtr.shape[0]
 lambds = np.logspace(np.log10(0.1), np.log10(100), 10)
 acc = np.zeros(len(lambds))
+gamma = 120
+
+ridge_regression = RidgeRegression(Gaussian_kernel(gamma), center=True) 
+for i in range(len(lambds)):
+    if i == 0:
+        ridge_regression.train(Xtr, Ytr, n, lambds[i])
+    else:
+        ridge_regression.train(Xtr, Ytr, n, lambds[i],ridge_regression.K)
+    
+    f = ridge_regression.predict(Xte, Xte.shape[0])
+
+    tmp = Yte == np.sign(f)
+    acc[i] = np.sum(tmp) / np.size(tmp)
+    print("Accuracy on test with gaussian kernel ridge regression:", acc[i])
+    
+
+
+#%%
+Xtr, Ytr, Xte, Yte = split_train_test(Xtr0,Ytr0_labels,prop=0.5) 
+  
+n = Xtr.shape[0]
+lambds = np.logspace(np.log10(0.1), np.log10(100), 10)
+acc = np.zeros(len(lambds))
 logistic_regression = LogisticRegression(center=False) 
 for i in range(len(lambds)):
     # LocisticRegression(center=True) would probably be better but problem with CenteredKernel
@@ -144,7 +167,7 @@ permut = np.random.permutation(int(N))
 Xtr, Ytr, Xte, Yte = split_train_test(Xtr0[permut,],Ytr0_labels[permut],prop=0.8) 
 n = Xtr.shape[0]
 
-svm = SVM(Gaussian_kernel(gamma)) 
+svm = SVM(Gaussian_kernel(gamma), center=True) 
 svm.train(Xtr, Ytr, n, 30)
 f = svm.predict(Xte, Xte.shape[0])
 tmp = Yte == np.sign(f)
@@ -152,11 +175,13 @@ accuracy = np.sum(tmp) / np.size(tmp)
 
 print("Accuracy on test with gaussian kernel (gamma = ", gamma, ") SVM:",accuracy)
 
-print("Generating test results file")
+print(">>> Generating test results file...")
 
 from generate_test_results import generate_submission_file
 generate_submission_file(svm, svm, svm, use_bow=True) # should NOT be written
 # like this since test sets 0, 1, 2 are from different datasets
+
+print("end")
 
 #%%
 
