@@ -116,6 +116,14 @@ class AlgorithmInstance(ABC):
                 print("end")
     
     
+    """
+        AlgorithmInstance.get_training_results
+        Get training results (for overfitting evaluation).
+        
+        Returns
+        ----------
+        f: np.array (shape=(n,)). Training results.
+    """
     def get_training_results(self):
         f = np.sign(self.K.dot(self.alpha.reshape((self.alpha.size, 1))))
         return f.reshape(-1)
