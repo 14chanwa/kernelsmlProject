@@ -7,9 +7,9 @@ Kernels methods in Machine Learning project
 ### Dependancies
 
 
-* Python 3.5 is recommended for Windows users (for `cvxopt`, see infra).
+* Python 3.5 is recommended for Windows users (for CVXOPT, see infra).
 * NumPy+MKL
-* [CVXOPT](http://cvxopt.org/). This package has known compatibility issues on Windows; Windows users should consider using Anaconda with a Python 3.5 environment and install this package and Numpy using `conda install numpy, cvxopt` instead of `pip`.
+* [CVXOPT](http://cvxopt.org/). This package has known compatibility issues on Windows; Windows users should consider using Anaconda with a Python 3.5 environment and install this package and Numpy using `conda install cvxopt` instead of `pip`.
 * [Joblib](https://pythonhosted.org/joblib/)
 
 
