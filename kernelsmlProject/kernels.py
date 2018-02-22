@@ -67,11 +67,17 @@ class Kernel(ABC):
         
         if self.enable_joblib:
             if verbose:
-                print("Called joblib loop on n_jobs=", multiprocessing.cpu_count())
+                print("Called joblib loop on n_jobs=", \
+                          multiprocessing.cpu_count())
             
-            results = jl.Parallel(n_jobs=multiprocessing.cpu_count())(jl.delayed(self._fill_train_line)(Xtr, i) for i in range(n))
+            # Better results when processing from the larger to the shorter
+            # line
+            results = jl.Parallel(n_jobs=multiprocessing.cpu_count()) (\
+                        jl.delayed(self._fill_train_line)(Xtr, i) \
+                        for i in range(n-1, -1, -1) \
+                        )
             for i in range(n):
-                K[:i+1, i] = results[i]
+                K[:i+1, i] = results[n-1-i]
         else:
             for i in range(n):
                 K[:i+1, i] = self._fill_train_line(Xtr, i)
@@ -125,9 +131,13 @@ class Kernel(ABC):
         
         if self.enable_joblib:
             if verbose:
-                print("Called joblib loop on n_jobs=", multiprocessing.cpu_count())
+                print("Called joblib loop on n_jobs=", \
+                          multiprocessing.cpu_count())
             
-            results = jl.Parallel(n_jobs=multiprocessing.cpu_count())(jl.delayed(self._fill_test_column)(Xte, Xtr, j, m) for j in range(n))
+            results = jl.Parallel(n_jobs=multiprocessing.cpu_count())(\
+                        jl.delayed(self._fill_test_column)(Xte, Xtr, j, m) \
+                        for j in range(n)\
+                        )
             for j in range(n):
                 K_t[:,j] = results[j]
         else:
@@ -172,7 +182,8 @@ class CenteredKernel(Kernel):
         self.n = n
         if K is None:
             # Compute the non-centered Gram matrix
-            self.K = self.kernel.compute_matrix_K(self.Xtr, self.n, verbose=verbose)
+            self.K = self.kernel.compute_matrix_K(self.Xtr, self.n, \
+                                                  verbose=verbose)
         else:
             self.K = K
         
@@ -180,7 +191,8 @@ class CenteredKernel(Kernel):
         
         # Store centered kernel
         U = np.ones(self.K.shape) / self.n
-        self.centered_K = (np.eye(self.n) - U).dot(self.K).dot(np.eye(self.n) - U)
+        self.centered_K = (np.eye(self.n) - U).dot(self.K)\
+                            .dot(np.eye(self.n) - U)
 
     
     """

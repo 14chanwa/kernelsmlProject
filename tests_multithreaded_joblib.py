@@ -30,6 +30,9 @@ def split_train_test(X,y,prop=0.9):
 if  __name__ == "__main__":
     
     
+    enable_joblib = True
+    
+    
     print(">>> Read data")
 
     # Read training set 0
@@ -52,7 +55,7 @@ if  __name__ == "__main__":
     gamma = 120
     lambd = 30
     
-    svm0 = kmlpa.SVM(kmlpk.Gaussian_kernel(gamma, enable_joblib=True), center=True) 
+    svm0 = kmlpa.SVM(kmlpk.Gaussian_kernel(gamma, enable_joblib=enable_joblib), center=True) 
     svm0.train(Xtr0, Ytr0, Xtr0.shape[0], lambd)
     # Training accuracy
     f = svm0.get_training_results()
@@ -94,7 +97,7 @@ if  __name__ == "__main__":
     Xtr0_, Ytr0_, Xte0_, Yte0_ = split_train_test(Xtr0[permut,],Ytr0[permut],prop=0.8) 
     n = Xtr0_.shape[0]
     
-    svm0 = kmlpa.SVM(kmlpk.Gaussian_kernel(gamma, enable_joblib=True), center=True) 
+    svm0 = kmlpa.SVM(kmlpk.Gaussian_kernel(gamma, enable_joblib=enable_joblib), center=True) 
     svm0.train(Xtr0_, Ytr0_, n, 30)
     f = svm0.predict(Xte0_, Xte0_.shape[0])
     tmp = Yte0_ == np.sign(f)

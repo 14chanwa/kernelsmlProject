@@ -88,7 +88,8 @@ class AlgorithmInstance(ABC):
         if K is None:
             if self.verbose:
                 print("Build K...")
-            self.K = self.kernel.compute_matrix_K(self.Xtr, self.n, self.verbose)
+            self.K = self.kernel.compute_matrix_K(self.Xtr, self.n, \
+                                                  self.verbose)
             if self.verbose:
                 print("end")
         else:
@@ -109,8 +110,8 @@ class AlgorithmInstance(ABC):
             self.centeredKernel.train(self.Xtr, self.n, self.K, self.verbose)
             self.kernel = self.centeredKernel
             # replace K by centered kernel
-            # it is not important to replace K since centering a centered kernel
-            # leaves it unchanged.. in principle
+            # it is not important to replace K since centering a centered 
+            # kernel leaves it unchanged.. in principle
             self.K = self.centeredKernel.get_centered_K() 
             if self.verbose:
                 print("end")
@@ -181,7 +182,8 @@ class RidgeRegression(AlgorithmInstance):
         else:
             W_sqrt = np.sqrt(W)
         
-        tmp = np.linalg.inv(W_sqrt.dot(self.K).dot(W_sqrt) + lambd * self.n * np.eye(self.n))
+        tmp = np.linalg.inv(W_sqrt.dot(self.K).dot(W_sqrt) + \
+                            lambd * self.n * np.eye(self.n))
         self.alpha = W_sqrt.dot(tmp).dot(W_sqrt).dot(Ytr)
     
 
@@ -345,6 +347,11 @@ class SVM(AlgorithmInstance):
         # Call function from super that builds K if not built and initializes
         # self.K (centered or not)
         self.init_train(Xtr, Ytr, n, K)
+        
+        
+        if self.verbose:
+            print("Solving SVM opt problem...")
+
 
         P = matrix(self.K,tc='d')
         q = matrix(-Ytr,tc='d')
@@ -352,4 +359,7 @@ class SVM(AlgorithmInstance):
         h = matrix(np.append(np.zeros(self.n),np.ones(self.n,dtype=float)/(2*lambd*self.n),axis=0),tc='d')
         solvers.options['show_progress'] = False
         self.alpha = np.array(solvers.qp(P, q, G, h)['x'])
-
+        
+        
+        if self.verbose:
+            print("end")
