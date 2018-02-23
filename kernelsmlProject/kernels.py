@@ -17,6 +17,8 @@ object with methods:
 
 from abc import ABC, abstractmethod
 import numpy as np
+import multiprocessing
+import joblib as jl
 
 
 #%%
@@ -25,9 +27,74 @@ import numpy as np
 class Kernel(ABC):
     
     
+    def __init__(self, enable_joblib=False):
+        self.enable_joblib = enable_joblib
+    
+    
     @abstractmethod
     def evaluate(self, x, y):
         pass
+    
+    
+    
+    def _fill_train_line(self, Xtr, i):
+        res = np.zeros((i+1,))
+        for j in range(i+1):
+            res[j] = self.evaluate(Xtr[i], Xtr[j])
+        return res
+    
+    
+    """
+        Kernel.compute_matrix_K
+        Compute K from data.
+        
+        Parameters
+        ----------
+        Xtr: list(object). 
+            Training data.
+        n: int.
+            Length of Xtr.
+        
+        Returns
+        ----------
+        K: np.array.
+    """
+    def compute_matrix_K(self, Xtr, n, verbose=True):
+        
+        
+        K = np.zeros([n, n], dtype=float)
+
+        
+        if self.enable_joblib:
+            if verbose:
+                print("Called joblib loop on n_jobs=", \
+                          multiprocessing.cpu_count())
+            
+            # Better results when processing from the larger to the shorter
+            # line
+            results = jl.Parallel(n_jobs=multiprocessing.cpu_count()) (\
+                        jl.delayed(self._fill_train_line)(Xtr, i) \
+                        for i in range(n-1, -1, -1) \
+                        )
+            for i in range(n):
+                K[:i+1, i] = results[n-1-i]
+        else:
+            for i in range(n):
+                K[:i+1, i] = self._fill_train_line(Xtr, i)
+        
+        
+        # Symmetrize
+        K = K + K.T - np.diag(K.diagonal())
+
+        return K
+    
+    
+    
+    def _fill_test_column(self, Xte, Xtr, j, m):
+        res = np.zeros((m,))
+        for k in range(m):
+            res[k] = self.evaluate(Xte[k], Xtr[j])
+        return res
     
     
     """
@@ -54,18 +121,35 @@ class Kernel(ABC):
     """
     def get_test_K_evaluations(self, Xtr, n, Xte, m, verbose=True):
         
+        
         if verbose:
             print("Called get_test_K_evaluations (NON CENTERED VERSION)")
         
+        
         K_t = np.zeros((m, n))
-        for i in range(m):
+        
+        
+        if self.enable_joblib:
+            if verbose:
+                print("Called joblib loop on n_jobs=", \
+                          multiprocessing.cpu_count())
+            
+            results = jl.Parallel(n_jobs=multiprocessing.cpu_count())(\
+                        jl.delayed(self._fill_test_column)(Xte, Xtr, j, m) \
+                        for j in range(n)\
+                        )
             for j in range(n):
-                K_t[i, j] = self.evaluate(Xte[i], Xtr[j])
+                K_t[:,j] = results[j]
+        else:
+            for j in range(n):
+                K_t[:,j] = self._fill_test_column(Xte, Xtr, j, m)
+        
         
         if verbose:
             print("end")
         
         return K_t
+<<<<<<< HEAD
     
     
     """
@@ -92,6 +176,8 @@ class Kernel(ABC):
                 K[i, j] = self.evaluate(Xtr[i], Xtr[j])
                 K[j, i] = K[i, j]
         return K
+=======
+>>>>>>> 98fd0e54414d53eacdda3d0779eb85be0cd7ecd9
 
 
 #%%
@@ -104,6 +190,7 @@ class Kernel(ABC):
 class CenteredKernel(Kernel):
     
     def __init__(self, kernel):
+        super().__init__(kernel.enable_joblib)
         self.kernel = kernel
     
     """
@@ -119,12 +206,13 @@ class CenteredKernel(Kernel):
         K: np.array(shape=(n, n)). 
             Optional. Kernel Gram matrix if available.    
     """
-    def train(self, Xtr, n, K=None):
+    def train(self, Xtr, n, K=None, verbose=True):
         self.Xtr = Xtr
         self.n = n
         if K is None:
             # Compute the non-centered Gram matrix
-            self.K = self.kernel.compute_matrix_K(self.Xtr, self.n)
+            self.K = self.kernel.compute_matrix_K(self.Xtr, self.n, \
+                                                  verbose=verbose)
         else:
             self.K = K
         
@@ -132,7 +220,8 @@ class CenteredKernel(Kernel):
         
         # Store centered kernel
         U = np.ones(self.K.shape) / self.n
-        self.centered_K = (np.eye(self.n) - U).dot(self.K).dot(np.eye(self.n) - U)
+        self.centered_K = (np.eye(self.n) - U).dot(self.K)\
+                            .dot(np.eye(self.n) - U)
 
     
     """
@@ -226,6 +315,10 @@ class CenteredKernel(Kernel):
 class Linear_kernel(Kernel):
     
     
+    def __init__(self, enable_joblib=False):
+        super().__init__(enable_joblib)
+  
+    
     """
         Linear_kernel.evaluate
         Compute x.dot(y)
@@ -249,7 +342,8 @@ class Linear_kernel(Kernel):
 class Gaussian_kernel(Kernel):
 
     
-    def __init__(self, gamma):
+    def __init__(self, gamma, enable_joblib=False):
+        super().__init__(enable_joblib)
         self.gamma = gamma
     
     
