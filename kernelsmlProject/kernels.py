@@ -86,6 +86,7 @@ class Kernel(ABC):
     def compute_matrix_K(self, Xtr, n):
         K = np.zeros([n, n], dtype=float)
         for i in range(n):
+            print(i)
             K[i, i] = self.evaluate(Xtr[i], Xtr[i])
             for j in range(i):
                 K[i, j] = self.evaluate(Xtr[i], Xtr[j])
@@ -267,4 +268,62 @@ class Gaussian_kernel(Kernel):
     """
     def evaluate(self, x, y):
         return np.exp(-self.gamma * np.sum(np.power(x - y, 2))) 
+
+
+"""
+    Spectrum_kernel
+"""
+class Spectrum_kernel(Kernel):
+    
+    def __init__(self, k,EOW = '$'):
+        self.k = k
+        self.EOW = '$'
+        
+    """
+        Spectrum_kernel.evaluate
+        Compute Phi(x[0]).dot(Phi(y[0]))
+        where Phi_u(x[0]) denotes the number of occurences of u in sequence x[0]
+        u in {A,T,C,G}^k
+        x[0] = sequence
+        x[1] = trie
+        
+        Parameters
+        ----------
+        x: (string, dictionary)
+        y: (string, dictionary)
+        
+        Returns
+        ----------
+        res: float.
+    """
+    def evaluate(self, x, y):
+        xwords = {}
+        count = 0
+        for l in range(len(x[0])-self.k+1):
+            if self.find_kmer(y[1],x[0][l:l+self.k]):
+                if x[0][l:l+self.k] in xwords.keys():
+                    xwords[x[0][l:l+self.k]] += 1
+                else:
+                    xwords[x[0][l:l+self.k]] = 1
+                    count += 1
+        xphi = np.fromiter(xwords.values(), dtype=int)
+        yphi = np.zeros(count)
+        for (i,w) in zip(range(len(xwords.keys())),xwords.keys()):
+            yphi[i] = sum(y[0][j:].startswith(w) for j in range(len(y[0])))
+        
+        return xphi.dot(yphi)
+                     
+
+    """
+        Spectrum_kernel.find_kmer
+        Finds whether a word kmer is present in a given retrieval tree trie
+    """
+    def find_kmer(self,trie,kmer):
+        tmp = trie
+        for l in kmer:
+            if l in tmp:
+                tmp = tmp[l]
+            else:
+                return False
+        return self.EOW in tmp
     
