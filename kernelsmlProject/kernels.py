@@ -124,8 +124,6 @@ class Kernel(ABC):
         
         if verbose:
             print("Called get_test_K_evaluations (NON CENTERED VERSION)")
-        
-        
         K_t = np.zeros((m, n))
         
         
