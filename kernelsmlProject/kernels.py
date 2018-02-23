@@ -149,7 +149,7 @@ class Kernel(ABC):
             print("end")
         
         return K_t
-<<<<<<< HEAD
+
     
     
     """
@@ -176,8 +176,7 @@ class Kernel(ABC):
                 K[i, j] = self.evaluate(Xtr[i], Xtr[j])
                 K[j, i] = K[i, j]
         return K
-=======
->>>>>>> 98fd0e54414d53eacdda3d0779eb85be0cd7ecd9
+
 
 
 #%%
