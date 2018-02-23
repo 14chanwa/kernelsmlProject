@@ -272,6 +272,7 @@ class Gaussian_kernel(Kernel):
 
 """
     Spectrum_kernel
+    STILL NEEDS SOME SPEED UP
 """
 class Spectrum_kernel(Kernel):
     
@@ -308,6 +309,9 @@ class Spectrum_kernel(Kernel):
                     count += 1
         xphi = np.fromiter(xwords.values(), dtype=int)
         yphi = np.zeros(count)
+        # this last part probably takes too long, 
+        # maybe precompute the number of occurences outside of the kernel
+        # (similarly to the computation of the tries)?
         for (i,w) in zip(range(len(xwords.keys())),xwords.keys()):
             yphi[i] = sum(y[0][j:].startswith(w) for j in range(len(y[0])))
         

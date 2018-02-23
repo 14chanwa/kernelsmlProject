@@ -72,3 +72,4 @@ f = svm.predict(Xte_merged, Xte.shape[0])
 tmp = Yte == np.sign(f)
 acc[i] = np.sum(tmp) / np.size(tmp)
 print("Accuracy on test with gaussian kernel (gamma = ", gammas[i], ") SVM:",acc[i])
+# yields accuracy of 0.63
