@@ -11,6 +11,12 @@ object with methods:
         vs test kernel Gram matrix.
 
 
+Multithreading capabilities:
+    If the types of the object enables it (e.g. gaussian or laplacian
+    kernels), use numba to jit and parallelize the operations.
+    Otherwise, use joblib to multithread.
+
+
 @author: Quentin
 """
 
@@ -19,6 +25,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 import multiprocessing
 import joblib as jl
+import numba
 
 
 #%%
@@ -47,6 +54,7 @@ class Kernel(ABC):
     """
         Kernel.compute_matrix_K
         Compute K from data.
+        JOBLIB GENERIC VERSION
         
         Parameters
         ----------
@@ -62,7 +70,7 @@ class Kernel(ABC):
     def compute_matrix_K(self, Xtr, n, verbose=True):
         
         
-        K = np.zeros([n, n], dtype=float)
+        K = np.zeros([n, n], dtype=np.float64)
 
         
         if self.enable_joblib:
@@ -103,6 +111,7 @@ class Kernel(ABC):
         and x_j is the jth training sample.
         NON CENTERED KERNEL VALUES version. The centered version is defined
         in derived class CenteredKernel.
+        JOBLIB GENERIC VERSION
         
         Parameters
         ----------
@@ -307,6 +316,38 @@ class Linear_kernel(Kernel):
         return x.dot(y.transpose())
 
 
+@numba.jit(nopython=True)
+def _jit_ev_gaussian(x, y, gamma):
+    return np.exp(-gamma * np.sum(np.power(x - y, 2))) 
+
+
+@numba.jit(nopython=True, parallel=True)
+def _jit_Ktr_gaussian(Xtr, n, gamma):
+    K = np.zeros((n, n), dtype=np.float64)
+
+    for i in range(n):
+        res = np.zeros((i+1,))
+        for j in range(i+1):
+            res[j] = _jit_ev_gaussian(Xtr[i,:], Xtr[j,:], gamma)
+        K[:i+1, i] = res
+        
+    # Symmetrize
+    return K + K.T - np.diag(np.diag(K))
+
+
+@numba.jit(nopython=True, parallel=True)
+def _jit_Kte_gaussian(Xtr, n, Xte, m, gamma):
+    K_t = np.zeros((m, n), dtype=np.float64)
+        
+    for j in range(n):
+        res = res = np.zeros((m,), dtype=np.float64)
+        for k in range(m):
+            res[k] = _jit_ev_gaussian(Xte[k], Xtr[j], gamma)
+        K_t[:,j] = res
+    
+    return K_t
+
+
 """
     Gaussian_kernel
 """
@@ -321,6 +362,7 @@ class Gaussian_kernel(Kernel):
     """
         Gaussian_kernel.evaluate
         Compute exp(- gamma * norm(x, y)^2).
+        JIT VERSION
         
         Parameters
         ----------
@@ -332,5 +374,66 @@ class Gaussian_kernel(Kernel):
         res: float.
     """
     def evaluate(self, x, y):
-        return np.exp(-self.gamma * np.sum(np.power(x - y, 2))) 
+        return _jit_ev_gaussian(x, y, self.gamma)
+    
+    
+    """
+        Gaussian_kernel.compute_matrix_K
+        Compute K from data.
+        JIT VERSION - OVERRIDES PARENT METHOD
+        
+        Parameters
+        ----------
+        Xtr: list(object). 
+            Training data.
+        n: int.
+            Length of Xtr.
+        
+        Returns
+        ----------
+        K: np.array.
+    """
+    def compute_matrix_K(self, Xtr, n, verbose=True):
+        if verbose:
+            print("Gaussian_kernel.compute_matrix_K")
+            res = _jit_Ktr_gaussian(Xtr, n, self.gamma)
+            print("end")
+        return res
+    
+    
+    
+    """
+        Gaussian_kernel.get_test_K_evaluations
+        Gets the matrix K_t = [K(t_i, x_j)] where t_i is the ith test sample 
+        and x_j is the jth training sample.
+        NON CENTERED KERNEL VALUES version. The centered version is defined
+        in derived class CenteredKernel.
+        JIT VERSION - OVERRIDES PARENT METHOD
+        
+        Parameters
+        ----------
+        Xtr: list(object). 
+            Training data.
+        n: int. 
+            Length of Xtr.
+        Xte: list(object). 
+            Test data.
+        m: int. 
+            Length of Xte.
+            
+        Returns
+        ----------
+        K_t: np.array (shape=(m,n)).
+    """
+    def get_test_K_evaluations(self, Xtr, n, Xte, m, verbose=True):
+        
+        if verbose:
+            print("Gaussian_kernel.get_test_K_evaluations")
+            
+        K_t = _jit_Kte_gaussian(Xtr, n, Xte, m, self.gamma)
+        
+        if verbose:
+            print("end")
+        
+        return K_t
     
