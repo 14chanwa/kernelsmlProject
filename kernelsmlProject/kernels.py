@@ -150,32 +150,6 @@ class Kernel(ABC):
         
         return K_t
 
-    
-    
-    """
-        Kernel.compute_matrix_K
-        Compute K from data.
-        
-        Parameters
-        ----------
-        Xtr: list(object). 
-            Training data.
-        n: int.
-            Length of Xtr.
-        
-        Returns
-        ----------
-        K: np.array.
-    """
-    def compute_matrix_K(self, Xtr, n):
-        K = np.zeros([n, n], dtype=float)
-        for i in range(n):
-            print(i)
-            K[i, i] = self.evaluate(Xtr[i], Xtr[i])
-            for j in range(i):
-                K[i, j] = self.evaluate(Xtr[i], Xtr[j])
-                K[j, i] = K[i, j]
-        return K
 
 
 
@@ -369,7 +343,8 @@ class Gaussian_kernel(Kernel):
 """
 class Spectrum_kernel(Kernel):
     
-    def __init__(self, k,EOW = '$'):
+    def __init__(self, k,EOW = '$', enable_joblib=False):
+        super().__init__(enable_joblib)
         self.k = k
         self.EOW = '$'
         
@@ -380,11 +355,12 @@ class Spectrum_kernel(Kernel):
         u in {A,T,C,G}^k
         x[0] = sequence
         x[1] = trie
+        x[2] = number of occurences of each kmer present in x[0]
         
         Parameters
         ----------
-        x: (string, dictionary)
-        y: (string, dictionary)
+        x: (string, dictionary, dictionary)
+        y: (string, dictionary, dictionary)
         
         Returns
         ----------
@@ -401,12 +377,12 @@ class Spectrum_kernel(Kernel):
                     xwords[x[0][l:l+self.k]] = 1
                     count += 1
         xphi = np.fromiter(xwords.values(), dtype=int)
-        yphi = np.zeros(count)
+        yphi = [y[2][key] for key in xwords.keys()]
         # this last part probably takes too long, 
         # maybe precompute the number of occurences outside of the kernel
         # (similarly to the computation of the tries)?
-        for (i,w) in zip(range(len(xwords.keys())),xwords.keys()):
-            yphi[i] = sum(y[0][j:].startswith(w) for j in range(len(y[0])))
+        #for (i,w) in zip(range(len(xwords.keys())),xwords.keys()):
+        #    yphi[i] = sum(y[0][j:].startswith(w) for j in range(len(y[0])))
         
         return xphi.dot(yphi)
                      
