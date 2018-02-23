@@ -325,9 +325,9 @@ def _jit_ev_gaussian(x, y, gamma):
 def _jit_Ktr_gaussian(Xtr, n, gamma):
     K = np.zeros((n, n), dtype=np.float64)
 
-    for i in range(n):
+    for i in numba.prange(n):
         res = np.zeros((i+1,))
-        for j in range(i+1):
+        for j in numba.prange(i+1):
             res[j] = _jit_ev_gaussian(Xtr[i,:], Xtr[j,:], gamma)
         K[:i+1, i] = res
         
@@ -339,9 +339,9 @@ def _jit_Ktr_gaussian(Xtr, n, gamma):
 def _jit_Kte_gaussian(Xtr, n, Xte, m, gamma):
     K_t = np.zeros((m, n), dtype=np.float64)
         
-    for j in range(n):
+    for j in numba.prange(n):
         res = res = np.zeros((m,), dtype=np.float64)
-        for k in range(m):
+        for k in numba.prange(m):
             res[k] = _jit_ev_gaussian(Xte[k], Xtr[j], gamma)
         K_t[:,j] = res
     
