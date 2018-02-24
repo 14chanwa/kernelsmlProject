@@ -276,8 +276,8 @@ class CenteredKernel(Kernel):
         #   + 1/n^2 * sum_{l, l'}(K_{l, l'}) where l, l' are train indices
         #   (the latter quantity was stored in self.eta)
         K_t = K_t_nc + (-1/self.n) * ( \
-                K_t_nc.dot(np.ones((n,n))) + \
-                np.ones((m, n)).dot(self.K))
+                K_t_nc.dot(np.ones((self.n,self.n))) + \
+                np.ones((m, self.n)).dot(self.K))
         K_t += self.eta
         
         if verbose:
@@ -316,26 +316,26 @@ class Linear_kernel(Kernel):
         return x.dot(y.transpose())
 
 
-@numba.jit(nopython=True)
+@numba.jit(nopython=True, nogil=True, cache=True)
 def _jit_ev_gaussian(x, y, gamma):
     return np.exp(-gamma * np.sum(np.power(x - y, 2))) 
 
 
-@numba.jit(nopython=True, parallel=True)
+@numba.jit(nopython=True, parallel=True, nogil=True)
 def _jit_Ktr_gaussian(Xtr, n, gamma):
     K = np.zeros((n, n), dtype=np.float64)
 
     for i in numba.prange(n):
         res = np.zeros((i+1,))
         for j in numba.prange(i+1):
-            res[j] = _jit_ev_gaussian(Xtr[i,:], Xtr[j,:], gamma)
+            res[j] = _jit_ev_gaussian(Xtr[i], Xtr[j], gamma)
         K[:i+1, i] = res
         
     # Symmetrize
     return K + K.T - np.diag(np.diag(K))
 
 
-@numba.jit(nopython=True, parallel=True)
+@numba.jit(nopython=True, parallel=True, nogil=True)
 def _jit_Kte_gaussian(Xtr, n, Xte, m, gamma):
     K_t = np.zeros((m, n), dtype=np.float64)
         
@@ -393,6 +393,7 @@ class Gaussian_kernel(Kernel):
         ----------
         K: np.array.
     """
+    @numba.jit(cache=True)
     def compute_matrix_K(self, Xtr, n, verbose=True):
         if verbose:
             print("Gaussian_kernel.compute_matrix_K")
@@ -425,6 +426,7 @@ class Gaussian_kernel(Kernel):
         ----------
         K_t: np.array (shape=(m,n)).
     """
+    @numba.jit(cache=True)
     def get_test_K_evaluations(self, Xtr, n, Xte, m, verbose=True):
         
         if verbose:
