@@ -23,9 +23,12 @@ Multithreading capabilities:
 
 from abc import ABC, abstractmethod
 import numpy as np
+import scipy as sp
 import multiprocessing
 import joblib as jl
 import numba
+
+import time
 
 
 #%%
@@ -69,6 +72,10 @@ class Kernel(ABC):
     """
     def compute_matrix_K(self, Xtr, n, verbose=True):
         
+        if verbose:
+            print("Called compute_matrix_K (NON CENTERED VERSION)")
+            start = time.time()
+        
         
         K = np.zeros([n, n], dtype=np.float64)
 
@@ -93,6 +100,10 @@ class Kernel(ABC):
         
         # Symmetrize
         K = K + K.T - np.diag(K.diagonal())
+        
+        if verbose:
+            end = time.time()
+            print("end. Time elapsed:", "{0:.2f}".format(end-start))
 
         return K
     
@@ -133,6 +144,7 @@ class Kernel(ABC):
         
         if verbose:
             print("Called get_test_K_evaluations (NON CENTERED VERSION)")
+            start = time.time()
         K_t = np.zeros((m, n))
         
         
@@ -153,7 +165,8 @@ class Kernel(ABC):
         
         
         if verbose:
-            print("end")
+            end = time.time()
+            print("end. Time elapsed:", "{0:.2f}".format(end-start))
         
         return K_t
 
@@ -266,6 +279,7 @@ class CenteredKernel(Kernel):
         
         if verbose:
             print("Called get_test_K_evaluations (CENTERED VERSION)")
+            start = time.time()
         
         # Get the non-centered K test
         K_t_nc = self.kernel.get_test_K_evaluations(Xtr, n, Xte, m, verbose)
@@ -281,7 +295,8 @@ class CenteredKernel(Kernel):
         K_t += self.eta
         
         if verbose:
-            print("end")
+            end = time.time()
+            print("end. Time elapsed:", "{0:.2f}".format(end-start))
         
         return K_t
 
@@ -503,3 +518,72 @@ class Spectrum_kernel(Kernel):
                 return False
         return self.EOW in tmp
     
+
+"""
+    Spectrum_kernel_DNA_preindexed
+"""
+class Spectrum_kernel_preindexed(Kernel):
+    
+    
+    """
+        Spectrum_kernel_preindexed.__init__
+        
+        Parameters
+        ----------
+        k: int. Length of the substrings to be looked for.
+        lexicon: dict. Map key to integer.
+    """
+    def __init__(self, k, lexicon, enable_joblib=False):
+        super().__init__(enable_joblib)
+        self.k = k
+        self.lexicon = lexicon
+        self.lex_size = len(lexicon)
+        #~ print(lexicon)
+        #~ print(self.lex_size)
+    
+    
+    """ 
+        Spectrum_kernel_preindexed.get_index
+    
+        Preindex lexicon, for instance a -> 1, b -> 2... z -> 26
+        Here we work with DNA sequences, thus the lexicon is shallow
+        (i.e. size lex_size=4). We take as the computed index simply 
+        the sum in base lex_size (i.e. for a sequence abcd of length
+        k=4 we would have 0 + 1 * 4 + 2 * 4**2 + 3 * 4**3, i.e. an
+        indexing on 256 values. We can go reasonably far (indices grow
+        with 4^{k-1}, we are limited, I believe, to int32).
+        We could concatenate arrays for combining values l < k,
+        until some point (the indices grow with (4**k - 1 / 3)).
+    """
+    def get_preindexed_value(self, lookup_str):
+        res = 0
+        for i in range(self.k):
+            res += self.lexicon[lookup_str[i]] * self.lex_size**i
+        #print(lookup_str, res)
+        return res
+        
+    """
+        Spectrum_kernel.evaluate
+        Compute Phi(x[0]).dot(Phi(y[0]))
+        
+        Parameters
+        ----------
+        x: (string, dictionary, dictionary)
+        y: (string, dictionary, dictionary)
+        
+        Returns
+        ----------
+        res: float.
+    """
+    def evaluate(self, x, y):
+        return self._phi(x).dot(self._phi(y))
+    
+    
+    def _phi(self, x):
+        # Suppose the values will never go above 255...
+        # Otherwise, will have to use scipy.sparse
+        phi_x = np.zeros(self.lex_size**self.k, dtype=np.uint16)
+        for l in range(len(x)-self.k+1):
+            phi_x[self.get_preindexed_value(x[l:l+self.k])] += 1
+        #~ print(phi_x)
+        return phi_x

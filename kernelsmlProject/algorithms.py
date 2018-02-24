@@ -97,6 +97,7 @@ class AlgorithmInstance(ABC):
         else:
             self.K = K
         
+        print("K=", self.K)
         
         if self.center:
             if self.verbose:

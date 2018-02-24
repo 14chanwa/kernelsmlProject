@@ -97,7 +97,7 @@ def compute_occurences(Xtr,k):
     return occs      
     
 #%%
-k = 5
+k = 1
 Xtr, Ytr, Xte, Yte = split_train_test(Xtr0,Ytr0_labels,prop=0.8)
 n = Xtr.shape[0]
 Xtr_merged = {}
@@ -136,129 +136,129 @@ for i in range(len(Cs)):
     tmp = Ytr == np.sign(ftr)
     tr_acc[i] = np.sum(tmp) / np.size(tmp)
     print("Accuracy on training with spectrum kernel SVM::",tr_acc[i])
-# C = 1 yields accuracy of 0.63
+#~ # C = 1 yields accuracy of 0.63
 
-#%%
-# length of k-mers
-k = 5
+#~ #%%
+#~ # length of k-mers
+#~ k = 5
 
-# split training set in training and validation set
-Xtr, Ytr, Xte, Yte = split_train_test(Xtr0,Ytr0_labels,prop=0.8)
-n = Xtr.shape[0]
+#~ # split training set in training and validation set
+#~ Xtr, Ytr, Xte, Yte = split_train_test(Xtr0,Ytr0_labels,prop=0.8)
+#~ n = Xtr.shape[0]
 
-# pre-process the data by computing retrieval trees and number of occurences of k-mers
-Xtr_merged = {}
-tries = compute_trie(Xtr,k)
-occs = compute_occurences(Xtr,k)
-for i in range(len(Xtr)):
-    Xtr_merged[i] = (Xtr[i],tries[i],occs[i])
+#~ # pre-process the data by computing retrieval trees and number of occurences of k-mers
+#~ Xtr_merged = {}
+#~ tries = compute_trie(Xtr,k)
+#~ occs = compute_occurences(Xtr,k)
+#~ for i in range(len(Xtr)):
+    #~ Xtr_merged[i] = (Xtr[i],tries[i],occs[i])
     
-Xte_merged = {}
-tries=compute_trie(Xte,k)
-occs = compute_occurences(Xte,k)
-for i in range(len(Xte)):
-    Xte_merged[i] = (Xte[i],tries[i],occs[i])
+#~ Xte_merged = {}
+#~ tries=compute_trie(Xte,k)
+#~ occs = compute_occurences(Xte,k)
+#~ for i in range(len(Xte)):
+    #~ Xte_merged[i] = (Xte[i],tries[i],occs[i])
 
-svm = SVM(Spectrum_kernel(k))
+#~ svm = SVM(Spectrum_kernel(k))
 
-lambds = np.linspace(1,3,10)
-for (i,lambd) in zip(range(len(lambds)),lambds):
-    if i == 0:
-        svm.train(Xtr_merged, Ytr, n, lambd)
-        KK0 = svm.K
-        f = svm.predict(Xte_merged, Xte.shape[0])
-        KK_t0 = svm.K_t
-    else:
-        svm.train(Xtr_merged, Ytr, n, lambd, KK0)
-        f = svm.predict(Xte_merged, Xte.shape[0], KK_t0)
+#~ lambds = np.linspace(1,3,10)
+#~ for (i,lambd) in zip(range(len(lambds)),lambds):
+    #~ if i == 0:
+        #~ svm.train(Xtr_merged, Ytr, n, lambd)
+        #~ KK0 = svm.K
+        #~ f = svm.predict(Xte_merged, Xte.shape[0])
+        #~ KK_t0 = svm.K_t
+    #~ else:
+        #~ svm.train(Xtr_merged, Ytr, n, lambd, KK0)
+        #~ f = svm.predict(Xte_merged, Xte.shape[0], KK_t0)
     
 
-    tmp = Yte == np.sign(f)
-    print("Accuracy on test with spectrum kernel SVM (lambda= ", lambd, "):",np.sum(tmp) / np.size(tmp))
+    #~ tmp = Yte == np.sign(f)
+    #~ print("Accuracy on test with spectrum kernel SVM (lambda= ", lambd, "):",np.sum(tmp) / np.size(tmp))
         
-    ftr = svm.get_training_results()
-    tmp = Ytr == np.sign(ftr)
-    print("Accuracy on training with spectrum kernel SVM  (lambda= ", lambd, "):",np.sum(tmp) / np.size(tmp))
+    #~ ftr = svm.get_training_results()
+    #~ tmp = Ytr == np.sign(ftr)
+    #~ print("Accuracy on training with spectrum kernel SVM  (lambda= ", lambd, "):",np.sum(tmp) / np.size(tmp))
     
-# lambda>1 yields good tradeoff between test and training accuracy (0.74 vs. 0.79)
+#~ # lambda>1 yields good tradeoff between test and training accuracy (0.74 vs. 0.79)
 
 
-#%%
-k = 5
-Xtr, Ytr, Xte, Yte = split_train_test(Xtr1,Ytr1_labels,prop=0.8)
-n = Xtr.shape[0]
-Xtr_merged = {}
-tries = compute_trie(Xtr,k)
-occs = compute_occurences(Xtr,k)
-for i in range(len(Xtr)):
-    Xtr_merged[i] = (Xtr[i],tries[i],occs[i])
+#~ #%%
+#~ k = 5
+#~ Xtr, Ytr, Xte, Yte = split_train_test(Xtr1,Ytr1_labels,prop=0.8)
+#~ n = Xtr.shape[0]
+#~ Xtr_merged = {}
+#~ tries = compute_trie(Xtr,k)
+#~ occs = compute_occurences(Xtr,k)
+#~ for i in range(len(Xtr)):
+    #~ Xtr_merged[i] = (Xtr[i],tries[i],occs[i])
     
-Xte_merged = {}
-tries=compute_trie(Xte,k)
-occs = compute_occurences(Xte,k)
-for i in range(len(Xtr)):
-    Xte_merged[i] = (Xte[i],tries[i],occs[i])
+#~ Xte_merged = {}
+#~ tries=compute_trie(Xte,k)
+#~ occs = compute_occurences(Xte,k)
+#~ for i in range(len(Xtr)):
+    #~ Xte_merged[i] = (Xte[i],tries[i],occs[i])
 
-svm = SVM(Spectrum_kernel(k))
+#~ svm = SVM(Spectrum_kernel(k))
 
-lambds = np.linspace(1,3,10)
-for (i,lambd) in zip(range(len(lambds)),lambds):
-    if i == 0:
-        svm.train(Xtr_merged, Ytr, n, lambd)
-        KK1 = svm.K
-        f = svm.predict(Xte_merged, Xte.shape[0])
-        KK_t1 = svm.K_t
-    else:
-        svm.train(Xtr_merged, Ytr, n, lambd, KK1)
-        f = svm.predict(Xte_merged, Xte.shape[0], KK_t1)
+#~ lambds = np.linspace(1,3,10)
+#~ for (i,lambd) in zip(range(len(lambds)),lambds):
+    #~ if i == 0:
+        #~ svm.train(Xtr_merged, Ytr, n, lambd)
+        #~ KK1 = svm.K
+        #~ f = svm.predict(Xte_merged, Xte.shape[0])
+        #~ KK_t1 = svm.K_t
+    #~ else:
+        #~ svm.train(Xtr_merged, Ytr, n, lambd, KK1)
+        #~ f = svm.predict(Xte_merged, Xte.shape[0], KK_t1)
     
 
-    tmp = Yte == np.sign(f)
-    print("Accuracy on test with spectrum kernel SVM (lambda= ", lambd, "):",np.sum(tmp) / np.size(tmp))
+    #~ tmp = Yte == np.sign(f)
+    #~ print("Accuracy on test with spectrum kernel SVM (lambda= ", lambd, "):",np.sum(tmp) / np.size(tmp))
         
-    ftr = svm.get_training_results()
-    tmp = Ytr == np.sign(ftr)
-    print("Accuracy on training with spectrum kernel SVM  (lambda= ", lambd, "):",np.sum(tmp) / np.size(tmp))
+    #~ ftr = svm.get_training_results()
+    #~ tmp = Ytr == np.sign(ftr)
+    #~ print("Accuracy on training with spectrum kernel SVM  (lambda= ", lambd, "):",np.sum(tmp) / np.size(tmp))
 
-# lambd = 2 yields 76% accuracy without overfitting
-#%%
-k = 6
-Xtr, Ytr, Xte, Yte = split_train_test(Xtr2,Ytr2_labels,prop=0.8)
-n = Xtr.shape[0]
-Xtr_merged = {}
-tries = compute_trie(Xtr,k)
-occs = compute_occurences(Xtr,k)
-for i in range(len(Xtr)):
-    Xtr_merged[i] = (Xtr[i],tries[i],occs[i])
+#~ # lambd = 2 yields 76% accuracy without overfitting
+#~ #%%
+#~ k = 6
+#~ Xtr, Ytr, Xte, Yte = split_train_test(Xtr2,Ytr2_labels,prop=0.8)
+#~ n = Xtr.shape[0]
+#~ Xtr_merged = {}
+#~ tries = compute_trie(Xtr,k)
+#~ occs = compute_occurences(Xtr,k)
+#~ for i in range(len(Xtr)):
+    #~ Xtr_merged[i] = (Xtr[i],tries[i],occs[i])
     
-Xte_merged = {}
-tries=compute_trie(Xte,k)
-occs = compute_occurences(Xte,k)
-for i in range(len(Xtr)):
-    Xte_merged[i] = (Xte[i],tries[i],occs[i])
+#~ Xte_merged = {}
+#~ tries=compute_trie(Xte,k)
+#~ occs = compute_occurences(Xte,k)
+#~ for i in range(len(Xtr)):
+    #~ Xte_merged[i] = (Xte[i],tries[i],occs[i])
 
-svm = SVM(Spectrum_kernel(k))
+#~ svm = SVM(Spectrum_kernel(k))
 
-lambds = np.linspace(10,30,20)
-for (i,lambd) in zip(range(len(lambds)),lambds):
-    if i == 0:
-        svm.train(Xtr_merged, Ytr, n, lambd,KK2)
-        KK2 = svm.K
-        f = svm.predict(Xte_merged, Xte.shape[0],KK_t2)
-        KK_t2 = svm.K_t
-    else:
-        svm.train(Xtr_merged, Ytr, n, lambd, KK2)
-        f = svm.predict(Xte_merged, Xte.shape[0], KK_t2)
+#~ lambds = np.linspace(10,30,20)
+#~ for (i,lambd) in zip(range(len(lambds)),lambds):
+    #~ if i == 0:
+        #~ svm.train(Xtr_merged, Ytr, n, lambd,KK2)
+        #~ KK2 = svm.K
+        #~ f = svm.predict(Xte_merged, Xte.shape[0],KK_t2)
+        #~ KK_t2 = svm.K_t
+    #~ else:
+        #~ svm.train(Xtr_merged, Ytr, n, lambd, KK2)
+        #~ f = svm.predict(Xte_merged, Xte.shape[0], KK_t2)
     
 
-    tmp = Yte == np.sign(f)
-    print("Accuracy on test with spectrum kernel SVM (lambda= ", lambd, "):",np.sum(tmp) / np.size(tmp))
+    #~ tmp = Yte == np.sign(f)
+    #~ print("Accuracy on test with spectrum kernel SVM (lambda= ", lambd, "):",np.sum(tmp) / np.size(tmp))
         
-    ftr = svm.get_training_results()
-    tmp = Ytr == np.sign(ftr)
-    print("Accuracy on training with spectrum kernel SVM  (lambda= ", lambd, "):",np.sum(tmp) / np.size(tmp))
+    #~ ftr = svm.get_training_results()
+    #~ tmp = Ytr == np.sign(ftr)
+    #~ print("Accuracy on training with spectrum kernel SVM  (lambda= ", lambd, "):",np.sum(tmp) / np.size(tmp))
 
-# k = 5 and lambd = 2 yield test acc = 60% and training accuracy = 70% (KK2_5,KK_t2_5)
-# k = 4 and lambd = 1 yield test acc = 62% and training accuracy = 64% (KK2_4,KK_t2_4)
-# k = 3 and lambd = 1 61 and 62
-# k = 6 and lambd = ? 64 and 82
+#~ # k = 5 and lambd = 2 yield test acc = 60% and training accuracy = 70% (KK2_5,KK_t2_5)
+#~ # k = 4 and lambd = 1 yield test acc = 62% and training accuracy = 64% (KK2_4,KK_t2_4)
+#~ # k = 3 and lambd = 1 61 and 62
+#~ # k = 6 and lambd = ? 64 and 82
