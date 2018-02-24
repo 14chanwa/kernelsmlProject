@@ -133,8 +133,6 @@ class Kernel(ABC):
         
         if verbose:
             print("Called get_test_K_evaluations (NON CENTERED VERSION)")
-        
-        
         K_t = np.zeros((m, n))
         
         
@@ -158,6 +156,8 @@ class Kernel(ABC):
             print("end")
         
         return K_t
+
+
 
 
 #%%
@@ -438,4 +438,68 @@ class Gaussian_kernel(Kernel):
             print("end")
         
         return K_t
+
+
+"""
+    Spectrum_kernel
+    STILL NEEDS SOME SPEED UP
+"""
+class Spectrum_kernel(Kernel):
+    
+    def __init__(self, k,EOW = '$', enable_joblib=False):
+        super().__init__(enable_joblib)
+        self.k = k
+        self.EOW = '$'
+        
+    """
+        Spectrum_kernel.evaluate
+        Compute Phi(x[0]).dot(Phi(y[0]))
+        where Phi_u(x[0]) denotes the number of occurences of u in sequence x[0]
+        u in {A,T,C,G}^k
+        x[0] = sequence
+        x[1] = trie
+        x[2] = number of occurences of each kmer present in x[0]
+        
+        Parameters
+        ----------
+        x: (string, dictionary, dictionary)
+        y: (string, dictionary, dictionary)
+        
+        Returns
+        ----------
+        res: float.
+    """
+    def evaluate(self, x, y):
+        xwords = {}
+        count = 0
+        for l in range(len(x[0])-self.k+1):
+            if self.find_kmer(y[1],x[0][l:l+self.k]):
+                if x[0][l:l+self.k] in xwords.keys():
+                    xwords[x[0][l:l+self.k]] += 1
+                else:
+                    xwords[x[0][l:l+self.k]] = 1
+                    count += 1
+        xphi = np.fromiter(xwords.values(), dtype=int)
+        yphi = [y[2][key] for key in xwords.keys()]
+        # this last part probably takes too long, 
+        # maybe precompute the number of occurences outside of the kernel
+        # (similarly to the computation of the tries)?
+        #for (i,w) in zip(range(len(xwords.keys())),xwords.keys()):
+        #    yphi[i] = sum(y[0][j:].startswith(w) for j in range(len(y[0])))
+        
+        return xphi.dot(yphi)
+                     
+
+    """
+        Spectrum_kernel.find_kmer
+        Finds whether a word kmer is present in a given retrieval tree trie
+    """
+    def find_kmer(self,trie,kmer):
+        tmp = trie
+        for l in kmer:
+            if l in tmp:
+                tmp = tmp[l]
+            else:
+                return False
+        return self.EOW in tmp
     

@@ -50,13 +50,15 @@ class AlgorithmInstance(ABC):
         Y: np.array (shape=(m,))
         
     """
-    def predict(self, Xte, m):
+    def predict(self, Xte, m, K_t = None):
         if self.verbose:
             print("Predict...")
-            
-        K_t = self.kernel.get_test_K_evaluations(self.Xtr, self.n, Xte, m,\
+        if K_t is None:
+            self.K_t = self.kernel.get_test_K_evaluations(self.Xtr, self.n, Xte, m,\
                                                  self.verbose)
-        Yte = K_t.dot(self.alpha.reshape((self.alpha.size,1))).reshape(-1)
+        else:
+            self.K_t = K_t
+        Yte = self.K_t.dot(self.alpha.reshape((self.alpha.size,1))).reshape(-1)
         
         if self.verbose:
             print("end")
