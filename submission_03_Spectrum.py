@@ -147,7 +147,7 @@ for i in range(len(Xtr0)):
     Xtr0_merged[i] = (Xtr0[i],tries[i],occs[i])
 Xtr0 = Xtr0_merged.copy()
 
-svm0 = kmlpa.SVM(kmlpk.Spectrum_kernel(k0), center=True) 
+svm0 = kmlpa.SVM(kmlpk.SpectrumKernel(k0), center=True) 
 svm0.train(Xtr0, Ytr0, n, lambd)
 # Training accuracy
 f = svm0.get_training_results()
@@ -172,7 +172,7 @@ for i in range(len(Xtr1)):
     Xtr1_merged[i] = (Xtr1[i],tries[i],occs[i])
 Xtr1 = Xtr1_merged.copy()
 
-svm1 = kmlpa.SVM(kmlpk.Spectrum_kernel(k1), center=True) 
+svm1 = kmlpa.SVM(kmlpk.SpectrumKernel(k1), center=True) 
 svm1.train(Xtr1, Ytr1, n, lambd)
 # Training accuracy
 f = svm1.get_training_results()
@@ -197,7 +197,7 @@ for i in range(len(Xtr2)):
     Xtr2_merged[i] = (Xtr2[i],tries[i],occs[i])
 Xtr2 = Xtr2_merged.copy()
 
-svm2 = kmlpa.SVM(kmlpk.Spectrum_kernel(k2), center=True) 
+svm2 = kmlpa.SVM(kmlpk.SpectrumKernel(k2), center=True) 
 svm2.train(Xtr2, Ytr2, n, lambd)
 # Training accuracy
 f = svm2.get_training_results()

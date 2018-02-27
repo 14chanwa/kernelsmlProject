@@ -54,7 +54,7 @@ C = 1
 lambd = 1 / (2 * Xtr0.shape[0] * C)
 
 
-svm0 = kmlpa.SVM(kmlpk.Gaussian_kernel(gamma), center=True) 
+svm0 = kmlpa.SVM(kmlpk.GaussianKernel(gamma), center=True) 
 svm0.train(Xtr0, Ytr0, Xtr0.shape[0], lambd)
 # Training accuracy
 f = svm0.get_training_results()
@@ -71,7 +71,7 @@ gamma = 5
 C = 5 
 lambd = 1 / (2 * Xtr1.shape[0] * C)
 
-svm1 = kmlpa.SVM(kmlpk.Gaussian_kernel(gamma), center=True) 
+svm1 = kmlpa.SVM(kmlpk.GaussianKernel(gamma), center=True) 
 svm1.train(Xtr1, Ytr1, Xtr1.shape[0], lambd)
 # Training accuracy
 f = svm1.get_training_results()
@@ -89,7 +89,7 @@ C = 5
 lambd = 1 / (2 * Xtr2.shape[0] * C)
 
 
-svm2 = kmlpa.SVM(kmlpk.Gaussian_kernel(gamma), center=True) 
+svm2 = kmlpa.SVM(kmlpk.GaussianKernel(gamma), center=True) 
 svm2.train(Xtr2, Ytr2, Xtr2.shape[0], lambd)
 # Training accuracy
 f = svm2.get_training_results()

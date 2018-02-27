@@ -68,7 +68,7 @@ print("k=", k, "lambda=", lambd)
 
 n = Xtr0.shape[0]
 
-current_kernel = kmlpk.Spectrum_kernel_preindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
+current_kernel = kmlpk.SpectrumKernelPreindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
 svm0 = kmlpa.SVM(current_kernel, center=True) 
 svm0.train(Xtr0, Ytr0, n, lambd)
 # Training accuracy
@@ -87,7 +87,7 @@ print("Training accuracy:", accuracy, "expected~", 0.864375) # expected perf 0.8
 
 #~ n = Xtr1.shape[0]
 
-#~ current_kernel = kmlpk.Spectrum_kernel_preindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
+#~ current_kernel = kmlpk.SpectrumKernelPreindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
 #~ svm1 = kmlpa.SVM(current_kernel, center=True) 
 #~ svm1.train(Xtr1, Ytr1, n, lambd)
 #~ # Training accuracy
@@ -104,7 +104,7 @@ print("Training accuracy:", accuracy, "expected~", 0.864375) # expected perf 0.8
 
 #~ n = Xtr1.shape[0]
 
-#~ current_kernel = kmlpk.Spectrum_kernel_preindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
+#~ current_kernel = kmlpk.SpectrumKernelPreindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
 #~ svm1 = kmlpa.SVM(current_kernel, center=True) 
 #~ svm1.train(Xtr1, Ytr1, n, lambd)
 #~ # Training accuracy
@@ -122,7 +122,7 @@ lambd = 0.02451795212765957
 
 n = Xtr1.shape[0]
 
-current_kernel = kmlpk.Spectrum_kernel_preindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
+current_kernel = kmlpk.SpectrumKernelPreindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
 svm1 = kmlpa.SVM(current_kernel, center=True) 
 svm1.train(Xtr1, Ytr1, n, lambd)
 # Training accuracy
@@ -140,7 +140,7 @@ print("Training accuracy:", accuracy, "expected~", 0.99875) # expected perf 0.88
 #~ lambd = 0.24517952127659579
 #~ n = Xtr2.shape[0]
 
-#~ current_kernel = kmlpk.Spectrum_kernel_preindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
+#~ current_kernel = kmlpk.SpectrumKernelPreindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
 #~ svm2 = kmlpa.SVM(current_kernel, center=True) 
 #~ svm2.train(Xtr2, Ytr2, n, lambd)
 #~ # Training accuracy
@@ -158,7 +158,7 @@ gamma = 10
 lambd = 0.0002
 
 
-svm2 = kmlpa.SVM(kmlpk.Gaussian_kernel(gamma), center=True) 
+svm2 = kmlpa.SVM(kmlpk.GaussianKernel(gamma), center=True) 
 svm2.train(Xtr2, Ytr2, Xtr2.shape[0], lambd)
 # Training accuracy
 f = svm2.get_training_results()

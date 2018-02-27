@@ -78,7 +78,7 @@ lambds = np.logspace(np.log10(0.1), np.log10(100), 10)
 acc = np.zeros(len(lambds))
 gamma = 120
 
-ridge_regression = RidgeRegression(Gaussian_kernel(gamma), center=True) 
+ridge_regression = RidgeRegression(GaussianKernel(gamma), center=True) 
 for i in range(len(lambds)):
     if i == 0:
         ridge_regression.train(Xtr, Ytr, n, lambds[i])
@@ -120,7 +120,7 @@ Xtr, Ytr, Xte, Yte = split_train_test(Xtr0,Ytr0_labels,prop=0.5)
 n = Xtr.shape[0]
 lambds = np.logspace(np.log10(0.001), np.log10(10), 10)
 acc = np.zeros(len(lambds))
-logistic_regression = LogisticRegression(Gaussian_kernel(20), center=True) 
+logistic_regression = LogisticRegression(GaussianKernel(20), center=True) 
 for i in range(len(lambds)):
     # LocisticRegression(center=True) would probably be better but problem with CenteredKernel
     if i == 0:
@@ -147,7 +147,7 @@ lambds = np.logspace(np.log10(0.1), np.log10(100), 10)
 acc = np.zeros(len(lambds))
 
 for i in range(len(lambds)):
-    svm = SVM(Gaussian_kernel(38.0), center=True) 
+    svm = SVM(GaussianKernel(38.0), center=True) 
     svm.train(Xtr, Ytr, n, lambds[i])
 
     f = svm.predict(Xte, Xte.shape[0])
@@ -173,7 +173,7 @@ C = 1
 lambd = 1 / (2 * n * C)
 
 for i in range(len(gammas)):
-    svm = SVM(Gaussian_kernel(gammas[i]),center=True) 
+    svm = SVM(GaussianKernel(gammas[i]),center=True) 
     svm.train(Xtr, Ytr, n, lambd)
 
     f = svm.predict(Xte, Xte.shape[0])
@@ -197,7 +197,7 @@ for k in range(nb_trials):
     C = 1 #        (1, 0.1) for Xtr0; (1, 5) for Xtr1,    (5, ) for Xtr2
     lambd = 1 / (2 * n * C)
 
-    svm = SVM(Gaussian_kernel(gamma), center=True) 
+    svm = SVM(GaussianKernel(gamma), center=True) 
     svm.train(Xtr, Ytr, n, lambd)
     fte = svm.predict(Xte, Xte.shape[0])
     tmp = Yte == np.sign(fte)
@@ -231,7 +231,7 @@ permut = np.random.permutation(int(N0))
 Xtr0_, Ytr0_, Xte0_, Yte0_ = split_train_test(Xtr0[permut,],Ytr0_labels[permut],prop=0.8) 
 n = Xtr0_.shape[0]
 
-svm0 = SVM(Gaussian_kernel(gamma), center=True) 
+svm0 = SVM(GaussianKernel(gamma), center=True) 
 svm0.train(Xtr0_, Ytr0_, n, 30)
 f = svm0.predict(Xte0_, Xte0_.shape[0])
 tmp = Yte0_ == np.sign(f)
@@ -253,7 +253,7 @@ permut = np.random.permutation(int(N1))
 Xtr1_, Ytr1_, Xte1_, Yte1_ = split_train_test(Xtr1[permut,],Ytr1_labels[permut],prop=0.8) 
 n = Xtr1_.shape[0]
 
-svm1 = SVM(Gaussian_kernel(gamma), center=True) 
+svm1 = SVM(GaussianKernel(gamma), center=True) 
 svm1.train(Xtr1_, Ytr1_, n, 30)
 f = svm1.predict(Xte1_, Xte1_.shape[0])
 tmp = Yte1_ == np.sign(f)
@@ -276,7 +276,7 @@ permut = np.random.permutation(int(N2))
 Xtr2_, Ytr2_, Xte2_, Yte2_ = split_train_test(Xtr2[permut,],Ytr2_labels[permut],prop=0.8) 
 n = Xtr2_.shape[0]
 
-svm2 = SVM(Gaussian_kernel(gamma), center=True) 
+svm2 = SVM(GaussianKernel(gamma), center=True) 
 svm2.train(Xtr2_, Ytr2_, n, 30)
 f = svm2.predict(Xte2_, Xte2_.shape[0])
 tmp = Yte2_ == np.sign(f)

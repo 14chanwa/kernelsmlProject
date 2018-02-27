@@ -16,7 +16,7 @@ from kernelsmlProject.algorithms import *
 print("Test: try to center 2 vectors")
 n = 2
 X = np.array([[0, 2], [0, 0]], dtype=float)
-centeredKernel = CenteredKernel(Linear_kernel())
+centeredKernel = CenteredKernel(LinearKernel())
 centeredKernel.train(X, n)
 print(centeredKernel.evaluate(X[0,:], X[1,:]))
 print(centeredKernel.evaluate(np.array([1, 1]), X[1,:]))
@@ -42,7 +42,7 @@ print("Test on 2 vectors")
 Xtr = np.array([[1, 1], [1, 3]]).reshape((2, 2))
 Ytr = np.array([1, -1]).reshape((2,))
 n = Xtr.shape[0]
-ridge_regression = RidgeRegression(Linear_kernel(), center=False)
+ridge_regression = RidgeRegression(LinearKernel(), center=False)
 ridge_regression.train(Xtr, Ytr, n, 1e-3)
 print(ridge_regression.predict(np.array([1, 2]).reshape((1, 2)), 1))
 print(ridge_regression.predict(np.array([1, 2.5]).reshape((1, 2)), 1))

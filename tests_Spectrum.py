@@ -112,7 +112,7 @@ occs = compute_occurences(Xte,k)
 for i in range(len(Xte)):
     Xte_merged[i] = (Xte[i],tries[i],occs[i])
 
-svm = SVM(Spectrum_kernel(k))
+svm = SVM(SpectrumKernel(k))
 Cs = np.linspace(0.1,10,10)
 acc = np.zeros(len(Cs))
 tr_acc = np.zeros(len(Cs))
@@ -159,7 +159,7 @@ occs = compute_occurences(Xte,k)
 for i in range(len(Xte)):
     Xte_merged[i] = (Xte[i],tries[i],occs[i])
 
-svm = SVM(Spectrum_kernel(k))
+svm = SVM(SpectrumKernel(k))
 
 lambds = np.linspace(1,3,10)
 for (i,lambd) in zip(range(len(lambds)),lambds):
@@ -199,7 +199,7 @@ occs = compute_occurences(Xte,k)
 for i in range(len(Xtr)):
     Xte_merged[i] = (Xte[i],tries[i],occs[i])
 
-svm = SVM(Spectrum_kernel(k))
+svm = SVM(SpectrumKernel(k))
 
 lambds = np.linspace(1,3,10)
 for (i,lambd) in zip(range(len(lambds)),lambds):
@@ -237,7 +237,7 @@ occs = compute_occurences(Xte,k)
 for i in range(len(Xtr)):
     Xte_merged[i] = (Xte[i],tries[i],occs[i])
 
-svm = SVM(Spectrum_kernel(k))
+svm = SVM(SpectrumKernel(k))
 
 lambds = np.linspace(10,30,20)
 for (i,lambd) in zip(range(len(lambds)),lambds):

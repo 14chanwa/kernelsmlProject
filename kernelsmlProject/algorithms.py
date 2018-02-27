@@ -9,14 +9,14 @@ Implements machine learning algorithms. Instances should have methods:
         data.
 
 
-@author: Quentin
+@author: Quentin & imke_mayer
 """
 
 
 from abc import ABC, abstractmethod
 import numpy as np
 from cvxopt import matrix, solvers
-from kernelsmlProject.kernels import Linear_kernel, CenteredKernel
+from kernelsmlProject.kernels import LinearKernel, CenteredKernel
 
 
 #%%
@@ -54,7 +54,7 @@ class AlgorithmInstance(ABC):
         if self.verbose:
             print("Predict...")
         if K_t is None:
-            self.K_t = self.kernel.get_test_K_evaluations(self.Xtr, self.n, Xte, m,\
+            self.K_t = self.kernel.compute_K_test(self.Xtr, self.n, Xte, m,\
                                                  self.verbose)
         else:
             self.K_t = K_t
@@ -90,7 +90,7 @@ class AlgorithmInstance(ABC):
         if K is None:
             if self.verbose:
                 print("Build K...")
-            self.K = self.kernel.compute_matrix_K(self.Xtr, self.n, \
+            self.K = self.kernel.compute_K_train(self.Xtr, self.n, \
                                                   self.verbose)
             if self.verbose:
                 print("end")
@@ -145,7 +145,7 @@ class RidgeRegression(AlgorithmInstance):
     
     def __init__(self, kernel=None, center=False, verbose=True):
         if kernel is None:
-            self.kernel = Linear_kernel()
+            self.kernel = LinearKernel()
         else:
             self.kernel = kernel
         self.center = center
@@ -203,7 +203,7 @@ class LogisticRegression(AlgorithmInstance):
     # Maybe better: center=True as default?
     def __init__(self, kernel=None, center=False, verbose=True):
         if kernel is None:
-            self.kernel = Linear_kernel()
+            self.kernel = LinearKernel()
         else:
             self.kernel = kernel
         self.center = center
@@ -321,7 +321,7 @@ class SVM(AlgorithmInstance):
     
     def __init__(self, kernel=None, center=False, verbose=True):
         if kernel is None:
-            self.kernel = Linear_kernel()
+            self.kernel = LinearKernel()
         else:
             self.kernel = kernel
         self.center = center

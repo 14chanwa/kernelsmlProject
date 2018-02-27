@@ -75,58 +75,57 @@ k = 6
 Xtr, Ytr, Xte, Yte = split_train_test(Xtr2,Ytr2_labels,prop=0.8)
 n = Xtr.shape[0]
 
-#~ current_kernel = Spectrum_kernel_preindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
+current_kernel = SpectrumKernelPreindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
 
 
 
-#~ svm = SVM(current_kernel, center=True)
-#~ Cs = np.linspace(0.01,1,60)
-#~ acc = np.zeros(len(Cs))
-#~ tr_acc = np.zeros(len(Cs))
-#~ for i in range(len(Cs)):
-    #~ lambd = 100 / (2 * n * Cs[i])
-    #~ if i == 0:
-        #~ svm.train(Xtr, Ytr, n, lambd)
-        #~ KK = svm.K
-        #~ f = svm.predict(Xte, Xte.shape[0])
-        #~ KK_t = svm.K_t
-    #~ else:
-        #~ svm.train(Xtr, Ytr, n, lambd, KK)
-        #~ f = svm.predict(Xte, Xte.shape[0], KK_t)
+svm = SVM(current_kernel, center=True)
+Cs = np.linspace(0.01,1,60)
+acc = np.zeros(len(Cs))
+tr_acc = np.zeros(len(Cs))
+for i in range(len(Cs)):
+    lambd = 100 / (2 * n * Cs[i])
+    if i == 0:
+        svm.train(Xtr, Ytr, n, lambd)
+        KK = svm.K
+        f = svm.predict(Xte, Xte.shape[0])
+        KK_t = svm.K_t
+    else:
+        svm.train(Xtr, Ytr, n, lambd, KK)
+        f = svm.predict(Xte, Xte.shape[0], KK_t)
     
     
-    #~ tmp = Yte == np.sign(f)
-    #~ acc[i] = np.sum(tmp) / np.size(tmp)
-    #~ print("k=", k, "lambda=", lambd, "Accuracy on test with spectrum kernel SVM:",acc[i])
+    tmp = Yte == np.sign(f)
+    acc[i] = np.sum(tmp) / np.size(tmp)
+    print("k=", k, "lambda=", lambd, "Accuracy on test with spectrum kernel SVM:",acc[i])
         
-    #~ ftr = svm.get_training_results()
-    #~ tmp = Ytr == np.sign(ftr)
-    #~ tr_acc[i] = np.sum(tmp) / np.size(tmp)
-    #~ print("k=", k, "lambda=", lambd, "Accuracy on training with spectrum kernel SVM::",tr_acc[i])
+    ftr = svm.get_training_results()
+    tmp = Ytr == np.sign(ftr)
+    tr_acc[i] = np.sum(tmp) / np.size(tmp)
+    print("k=", k, "lambda=", lambd, "Accuracy on training with spectrum kernel SVM::",tr_acc[i])
     
 
 
 
-#%%
-# Read training set 2
-Xtr2 = np.genfromtxt('./data/Xtr2_mat50.csv', delimiter=' ')
+#~ #%%
+#~ # Read training set 2
+#~ Xtr2 = np.genfromtxt('./data/Xtr2_mat50.csv', delimiter=' ')
 
-Xtr, Ytr, Xte, Yte = split_train_test(Xtr2,Ytr2_labels,prop=0.8)
+#~ Xtr, Ytr, Xte, Yte = split_train_test(Xtr2,Ytr2_labels,prop=0.8)
 
-gamma = 10
-#~ C = 5 
-lambd = 0.0002#1 / (2 * Xtr2.shape[0] * C)
+#~ gamma = 10
+#~ lambd = 0.0002#1 / (2 * Xtr2.shape[0] * C)
 
 
-svm2 = SVM(Gaussian_kernel(gamma), center=True) 
-svm2.train(Xtr, Ytr, Xtr.shape[0], lambd)
+#~ svm2 = SVM(GaussianKernel(gamma), center=True) 
+#~ svm2.train(Xtr, Ytr, Xtr.shape[0], lambd)
 
-f = svm2.predict(Xte, Xte.shape[0])
-tmp = Yte == np.sign(f)
-acc = np.sum(tmp) / np.size(tmp)
-print("gamma=", gamma, "lambda=", lambd, lambd, "Accuracy on test:",acc)
+#~ f = svm2.predict(Xte, Xte.shape[0])
+#~ tmp = Yte == np.sign(f)
+#~ acc = np.sum(tmp) / np.size(tmp)
+#~ print("gamma=", gamma, "lambda=", lambd, lambd, "Accuracy on test:",acc)
     
-ftr = svm2.get_training_results()
-tmp = Ytr == np.sign(ftr)
-tr_acc = np.sum(tmp) / np.size(tmp)
-print("gamma=", gamma, "lambda=", lambd, "Accuracy on training:",tr_acc)
+#~ ftr = svm2.get_training_results()
+#~ tmp = Ytr == np.sign(ftr)
+#~ tr_acc = np.sum(tmp) / np.size(tmp)
+#~ print("gamma=", gamma, "lambda=", lambd, "Accuracy on training:",tr_acc)
