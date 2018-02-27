@@ -583,7 +583,7 @@ class Spectrum_kernel_preindexed(Kernel):
     
     """
         Spectrum_kernel._phi
-        Compute Phi(x)
+        Compute Phi(x). Unit version (slow).
         
         Parameters
         ----------
@@ -595,6 +595,7 @@ class Spectrum_kernel_preindexed(Kernel):
             Counts the number of substrings by index.
     """
     def _phi(self, x):
+        
         # Suppose the values will never go above uint16...
         # Otherwise, will have to use scipy.sparse
         phi_x = np.zeros(self.lex_size**self.k, dtype=np.uint16)
@@ -619,6 +620,7 @@ class Spectrum_kernel_preindexed(Kernel):
             corresponding string of the same index.
     """
     def _phi_from_list(self, X, m):
+        
         # l is the length of the strings
         # suppose they are all of the same length (otherwise, must do
         # some more complicated matrix operations)
@@ -637,6 +639,12 @@ class Spectrum_kernel_preindexed(Kernel):
         
         # Build a circulant matrix for computing the identifier of each
         # substring of length k
+        # The identifier is sum(lex[x[0]] * lex_size**0 + lex[x[1]] * lex_size**1 ...)
+        # For instance: if self.lex_size = 4 and self.k = 3:
+        # [[ 1  4 16  0  0  0 ... ]
+        #  [ 0  1  4 16  0  0 ... ]
+        #  [ 0  0  1  4 16  0 ... ]]
+        # of size (l-self.k+1, l)
         if self.lex_size**self.k >= 65535:
             raise Exception("Number too big for uint16!")
         T = np.zeros((l-self.k+1, l), dtype=np.uint16)
@@ -645,11 +653,13 @@ class Spectrum_kernel_preindexed(Kernel):
             diag = np.diagonal(T, i)
             diag.setflags(write=True)
             diag.fill(self.lex_size**i)
-            #~ np.fill_diagonal(T[:n-self.k+1-i,i:],self.lex_size**i)
         
         #~ print(T)
         
-        # Create a matrix with (i, j) being the index of the substring
+        # Create a matrix with (i, j) being the identifier of the substring
+        # under consideration (simple product!)
+        # For instance X_indexed[i, j] will be the identifier of substring j
+        # in sample i.
         X_indexed = X_encoded.dot(T.T)
         
         #~ print(X_indexed)
@@ -659,7 +669,9 @@ class Spectrum_kernel_preindexed(Kernel):
         # Assume the counts are always less than l-k+1 < 65535
         if l-self.k+1 >= 65535:
             raise Exception("Number too big for uint16!")
-        Phi = sparse.dok_matrix((m, self.lex_size**self.k), dtype=np.uint16)
+        # Put a uint32 since this matrix will be multiplied by itself at
+        # some point
+        Phi = sparse.dok_matrix((m, self.lex_size**self.k), dtype=np.uint32) 
         for i in range(X_indexed.shape[0]):
             for j in range(X_indexed.shape[1]):
                 Phi[i, X_indexed[i,j]] += 1
