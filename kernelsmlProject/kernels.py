@@ -711,6 +711,10 @@ class Spectrum_kernel_preindexed(Kernel):
         if (l-self.k+1)**2 >= 65535:
             raise Exception("Number too big for uint16!")
         K = np.array(self.Phi_tr.dot(self.Phi_tr.T).todense(), dtype=np.float64)
+        
+        if verbose:
+            end = time.time()
+            print("end. Time elapsed:", "{0:.2f}".format(end-start))
 
         return K
 
