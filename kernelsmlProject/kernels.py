@@ -24,6 +24,7 @@ Multithreading capabilities:
 from abc import ABC, abstractmethod
 import numpy as np
 import scipy as sp
+import scipy.sparse as sparse
 import multiprocessing
 import joblib as jl
 import numba
@@ -485,6 +486,7 @@ class Spectrum_kernel(Kernel):
         res: float.
     """
     def evaluate(self, x, y):
+        #print("in evaluate")
         xwords = {}
         count = 0
         for l in range(len(x[0])-self.k+1):
@@ -579,11 +581,169 @@ class Spectrum_kernel_preindexed(Kernel):
         return self._phi(x).dot(self._phi(y))
     
     
+    """
+        Spectrum_kernel._phi
+        Compute Phi(x)
+        
+        Parameters
+        ----------
+        x: string.
+        
+        Returns
+        ----------
+        res: np.array((self.lex_size**self.k)).
+            Counts the number of substrings by index.
+    """
     def _phi(self, x):
-        # Suppose the values will never go above 255...
+        # Suppose the values will never go above uint16...
         # Otherwise, will have to use scipy.sparse
         phi_x = np.zeros(self.lex_size**self.k, dtype=np.uint16)
         for l in range(len(x)-self.k+1):
             phi_x[self.get_preindexed_value(x[l:l+self.k])] += 1
         #~ print(phi_x)
         return phi_x
+        
+    
+    """
+        Spectrum_kernel._phi_from_list
+        Compute Phi(x) for each x in X.
+        
+        Parameters
+        ----------
+        X: list(string) (length m).
+        
+        Returns
+        ----------
+        res: np.array((m, self.lex_size**self.k)).
+            Each line counts the number of substrings by index in the
+            corresponding string of the same index.
+    """
+    def _phi_from_list(self, X, m):
+        # l is the length of the strings
+        # suppose they are all of the same length (otherwise, must do
+        # some more complicated matrix operations)
+        l = len(X[0])
+        
+        # Let the code in the dictionary be of length < 256...
+        # Build the matrix Xtr_encoded such that Xtr_encoded[i, :] is
+        # the ith training sample encoded with the dictionnary
+        if self.lex_size >= 256:
+            raise Exception("Number too big for uint8!")
+        X_encoded = np.zeros((m, l), dtype=np.uint8)
+        for i in range(m):
+            X_encoded[i] = [self.lexicon[X[i][j]] for j in range(l)]
+        
+        #~ print(Xtr_encoded)
+        
+        # Build a circulant matrix for computing the identifier of each
+        # substring of length k
+        if self.lex_size**self.k >= 65535:
+            raise Exception("Number too big for uint16!")
+        T = np.zeros((l-self.k+1, l), dtype=np.uint16)
+        #~ print("T:", T.shape)
+        for i in range(self.k):
+            diag = np.diagonal(T, i)
+            diag.setflags(write=True)
+            diag.fill(self.lex_size**i)
+            #~ np.fill_diagonal(T[:n-self.k+1-i,i:],self.lex_size**i)
+        
+        #~ print(T)
+        
+        # Create a matrix with (i, j) being the index of the substring
+        X_indexed = X_encoded.dot(T.T)
+        
+        #~ print(X_indexed)
+        
+        # Now fill a sparse matrix of size (n, self.lex_size**self.k)
+        # containing the counts of each substring
+        # Assume the counts are always less than l-k+1 < 65535
+        if l-self.k+1 >= 65535:
+            raise Exception("Number too big for uint16!")
+        Phi = sparse.dok_matrix((m, self.lex_size**self.k), dtype=np.uint16)
+        for i in range(X_indexed.shape[0]):
+            for j in range(X_indexed.shape[1]):
+                Phi[i, X_indexed[i,j]] += 1
+        
+        return Phi.tocsr()
+    
+    """
+        Spectrum_kernel_preindexed.compute_matrix_K
+        Compute K from data.
+        Overrides generic method.
+        
+        Parameters
+        ----------
+        Xtr: list(string). 
+            Training data.
+        n: int.
+            Length of Xtr.
+        
+        Returns
+        ----------
+        K: np.array.
+    """
+    def compute_matrix_K(self, Xtr, n, verbose=True):
+        
+        if verbose:
+            print("Called Spectrum_kernel_preindexed.compute_matrix_K")
+            start = time.time()
+        
+        l = len(Xtr[0])
+        
+        self.Phi_tr = self._phi_from_list(Xtr, n)
+        
+        #~ print(self.Phi_tr)
+        
+        # Finally take the scalar product
+        # Assume the counts squared are always less than (l-k+1)**2 < 65535
+        if (l-self.k+1)**2 >= 65535:
+            raise Exception("Number too big for uint16!")
+        K = np.array(self.Phi_tr.dot(self.Phi_tr.T).todense(), dtype=np.float64)
+
+        return K
+
+    
+    """
+        Spectrum_kernel_preindexed.get_test_K_evaluations
+        Gets the matrix K_t = [K(t_i, x_j)] where t_i is the ith test sample 
+        and x_j is the jth training sample.
+        NON CENTERED KERNEL VALUES version. The centered version is defined
+        in derived class CenteredKernel.
+        
+        Parameters
+        ----------
+        Xtr: list(object). 
+            Training data.
+        n: int. 
+            Length of Xtr.
+        Xte: list(object). 
+            Test data.
+        m: int. 
+            Length of Xte.
+            
+        Returns
+        ----------
+        K_t: np.array (shape=(m,n)).
+    """
+    def get_test_K_evaluations(self, Xtr, n, Xte, m, verbose=True):
+        
+        if verbose:
+            print("Called Spectrum_kernel_preindexed.get_test_K_evaluations")
+            start = time.time()
+        #~ K_t = np.zeros((m, n))
+        
+        l = len(Xte[0])
+        
+        self.Phi_te = self._phi_from_list(Xte, m)
+        
+        # Finally take the scalar product
+        # Assume the counts squared are always less than (l-k+1)**2 < 65535
+        if (l-self.k+1)**2 >= 65535:
+            raise Exception("Number too big for uint16!")
+        K_t = np.array(self.Phi_te.dot(self.Phi_tr.T).todense(), dtype=np.float64)
+        
+        if verbose:
+            end = time.time()
+            print("end. Time elapsed:", "{0:.2f}".format(end-start))
+        
+        return K_t

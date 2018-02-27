@@ -71,11 +71,15 @@ def split_train_test(X,y,prop=0.9):
 
 
 #%%
-k = 1
+k = 5
 Xtr, Ytr, Xte, Yte = split_train_test(Xtr0,Ytr0_labels,prop=0.8)
 n = Xtr.shape[0]
 
-svm = SVM(Spectrum_kernel_preindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True))
+current_kernel = Spectrum_kernel_preindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
+#~ print(current_kernel.compute_matrix_K(Xtr=Xtr, n=n, verbose=True))
+
+
+svm = SVM(current_kernel)
 Cs = np.linspace(0.1,10,10)
 acc = np.zeros(len(Cs))
 tr_acc = np.zeros(len(Cs))
@@ -90,7 +94,7 @@ for i in range(len(Cs)):
         svm.train(Xtr, Ytr, n, lambd, KK)
         f = svm.predict(Xte, Xte.shape[0], KK_t)
     
-
+    
     tmp = Yte == np.sign(f)
     acc[i] = np.sum(tmp) / np.size(tmp)
     print("Accuracy on test with spectrum kernel SVM:",acc[i])
@@ -99,3 +103,5 @@ for i in range(len(Cs)):
     tmp = Ytr == np.sign(ftr)
     tr_acc[i] = np.sum(tmp) / np.size(tmp)
     print("Accuracy on training with spectrum kernel SVM::",tr_acc[i])
+    
+
