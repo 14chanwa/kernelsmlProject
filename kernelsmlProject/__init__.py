@@ -8,8 +8,8 @@ generic machine learning algorithms.
 
 
 # Enables the user to import all functions with
-#~ from kernelsmlProject import *
+#   from kernelsmlProject import *
 # e.g.
-#~ a = kernelsmlProject.LinearKernel()
+#   a = kernelsmlProject.LinearKernel()
 from kernelsmlProject.kernels import *
 from kernelsmlProject.algorithms import *
