@@ -30,7 +30,7 @@ class AlgorithmInstance(ABC):
     """
 
     @abstractmethod
-    def train(self, Xtr, Ytr, n):
+    def train(self, Xtr, Ytr, n, lambd=1, K=None):
         pass
 
     def predict(self, Xte, m, K_t=None):

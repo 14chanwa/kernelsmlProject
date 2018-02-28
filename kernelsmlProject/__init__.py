@@ -13,3 +13,4 @@ generic machine learning algorithms.
 #   a = kernelsmlProject.LinearKernel()
 from kernelsmlProject.kernels import *
 from kernelsmlProject.algorithms import *
+from kernelsmlProject.validation import *
