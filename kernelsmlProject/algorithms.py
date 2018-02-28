@@ -30,7 +30,7 @@ class AlgorithmInstance(ABC):
     """
 
     @abstractmethod
-    def train(self, Xtr, Ytr, n):
+    def train(self, Xtr, Ytr, n, lambd=1, K=None):
         pass
 
     def predict(self, Xte, m, K_t=None):
@@ -86,22 +86,10 @@ class AlgorithmInstance(ABC):
         self.Xtr = Xtr
         self.Ytr = Ytr
         self.n = n
-
-        if K is None:
-            if self.verbose:
-                print("Build K...")
-            self.K = self.kernel.compute_K_train(self.Xtr, self.n, self.verbose)
-            if self.verbose:
-                print("end")
-        else:
-            self.K = K
-
-        # ~ if self.verbose:
-        # ~ print("K=", self.K)
-
+		
         if self.center:
             if self.verbose:
-                print("Center K...")
+                print("Center K")
 
             # Major issue solved: do NOT center an already centered kernel
             try:
@@ -109,15 +97,16 @@ class AlgorithmInstance(ABC):
             except AttributeError:
                 self.centeredKernel = CenteredKernel(self.kernel)
 
-            # Train the centered kernel
-            self.centeredKernel.train(self.Xtr, self.n, self.K, self.verbose)
             self.kernel = self.centeredKernel
-            # replace K by centered kernel
-            # it is not important to replace K since centering a centered 
-            # kernel leaves it unchanged.. in principle
-            self.K = self.centeredKernel.get_centered_K()
+
+        if K is None:
+            if self.verbose:
+                print("Build K...")
+            self.K = self.kernel.compute_K_train(self.Xtr, self.n, verbose=self.verbose)
             if self.verbose:
                 print("end")
+        else:
+            self.K = K
 
     def get_training_results(self):
         """
