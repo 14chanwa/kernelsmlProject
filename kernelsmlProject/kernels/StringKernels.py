@@ -104,7 +104,7 @@ class SpectrumKernel(Kernel):
 
 class SpectrumKernelPreindexed(Kernel):
     """
-        SpectrumKernel_DNA_preindexed
+        SpectrumKernelPreindexed
     """
 
     def __init__(self, k, lexicon, enable_joblib=False):
@@ -157,7 +157,7 @@ class SpectrumKernelPreindexed(Kernel):
 
     def evaluate(self, x, y):
         """
-            SpectrumKernel.evaluate
+            SpectrumKernelPreindexed.evaluate
             Compute Phi(x[0]).dot(Phi(y[0]))
 
             Parameters
@@ -174,7 +174,7 @@ class SpectrumKernelPreindexed(Kernel):
 
     def _phi(self, x):
         """
-            SpectrumKernel._phi
+            SpectrumKernelPreindexed._phi
             Compute Phi(x). Unit version (slow).
 
             Parameters
@@ -197,7 +197,7 @@ class SpectrumKernelPreindexed(Kernel):
 
     def _phi_from_list(self, X, m):
         """
-            SpectrumKernel._phi_from_list
+            SpectrumKernelPreindexed._phi_from_list
             Compute Phi(x) for each x in X.
 
             Parameters
@@ -235,9 +235,9 @@ class SpectrumKernelPreindexed(Kernel):
         #  [ 0  1  4 16  0  0 ... ]
         #  [ 0  0  1  4 16  0 ... ]]
         # of size (l-self.k+1, l)
-        if self.lex_size ** self.k >= 65535:
-            raise Exception("Number too big for uint16!")
-        T = np.zeros((l - self.k + 1, l), dtype=np.uint16)
+        if self.lex_size ** self.k >= 4294967295:
+            raise Exception("Number too big for uint32!")
+        T = np.zeros((l - self.k + 1, l), dtype=np.uint32)
         # ~ print("T:", T.shape)
         for i in range(self.k):
             diag = np.diagonal(T, i)
@@ -366,6 +366,129 @@ class SpectrumKernelPreindexed(Kernel):
 
         return K_t
 
+
+class MultipleSpectrumKernel(Kernel):
+    """
+        MultipleSpectrumKernel
+        Let k_1, k_2... be possible lengths of consecutive substrings.
+        Let Phi_{k_1}, Phi_{k_2}... be the transforms by the Spectrum
+        kernel ; then define Phi associated to this kernel as the
+        sum of all these values. The associated K is indeed a positive
+        definite function, so a valid kernel.
+    """
+
+    def __init__(self, list_k, lexicon, enable_joblib=False):
+        """
+            MultipleSpectrumKernel.__init__
+
+            Parameters
+            ----------
+            k: int. Length of the substrings to be looked for.
+            lexicon: dict. Map key to integer.
+        """
+
+        super().__init__(enable_joblib)
+        self.list_k = list_k
+        self.lexicon = lexicon
+        self.lex_size = len(lexicon)
+        
+        # Create a list of kernels to be evaluated
+        self.list_kernels = []
+        for i in range(len(self.list_k)):
+            self.list_kernels.append(SpectrumKernelPreindexed(self.list_k[i], self.lexicon))
+    
+    def evaluate(self, x, y):
+        """
+            MultipleSpectrumKernel.evaluate
+            Compute Phi(x[0]).dot(Phi(y[0]))
+
+            Parameters
+            ----------
+            x: (string, dictionary, dictionary)
+            y: (string, dictionary, dictionary)
+
+            Returns
+            ----------
+            res: float.
+        """
+        
+        res = 0
+        for kernel in self.list_kernels:
+            res += kernel.evaluate(x, y)
+        
+        return res
+    
+    def compute_K_train(self, Xtr, n, verbose=True):
+        """
+            MultipleSpectrumKernel.compute_K_train
+            Compute K from data.
+            Overrides generic method.
+
+            Parameters
+            ----------
+            Xtr: list(string).
+                Training data.
+            n: int.
+                Length of Xtr.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K: np.array.
+        """
+
+        if verbose:
+            print("Called MultipleSpectrumKernel.compute_K_train")
+            start = time.time()
+
+        K = np.zeros((n, n))
+        for kernel in self.list_kernels:
+            K += kernel.compute_K_train(Xtr, n, verbose)
+        
+        if verbose:
+            end = time.time()
+            print("end. Time elapsed:", "{0:.2f}".format(end - start))
+
+        return K
+
+    def compute_K_test(self, Xtr, n, Xte, m, verbose=True):
+        """
+            SpectrumKernelPreindexed.compute_K_test
+            Gets the matrix K_t = [K(t_i, x_j)] where t_i is the ith test sample
+            and x_j is the jth training sample.
+            NON CENTERED KERNEL VALUES version. The centered version is defined
+            in derived class CenteredKernel.
+
+            Parameters
+            ----------
+            Xtr: list(object).
+                Training data.
+            n: int.
+                Length of Xtr.
+            Xte: list(object).
+                Test data.
+            m: int.
+                Length of Xte.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K_t: np.array (shape=(m,n)).
+        """
+
+        if verbose:
+            print("Called SpectrumKernelPreindexed.compute_K_test")
+            start = time.time()
+        
+        K_t = np.zeros((m, n))
+        for kernel in self.list_kernels:
+            K_t += kernel.compute_K_test(Xtr, n, Xte, m, verbose)
+
+        return K_t
+    
+
 class SubstringKernel(Kernel):
     """
         SubstringKernel
@@ -384,8 +507,6 @@ class SubstringKernel(Kernel):
         super().__init__(enable_joblib)
         self.k = k
         self.lambd = lambd
-        
-    
 
     def evaluate(self, x, y):
         """
