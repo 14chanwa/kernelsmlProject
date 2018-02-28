@@ -357,3 +357,122 @@ class SpectrumKernelPreindexed(Kernel):
             print("end. Time elapsed:", "{0:.2f}".format(end - start))
 
         return K_t
+
+class SubstringKernel(Kernel):
+    """
+        SubstringKernel
+    """
+
+    def __init__(self, k, lambd, enable_joblib=False):
+        """
+            SubstringKernel.__init__
+
+            Parameters
+            ----------
+            k: int. Length of the substrings to be looked for.
+            lambd: float. Parameter of substring kernel
+        """
+
+        super().__init__(enable_joblib)
+        self.k = k
+        self.lambd = lambd
+        
+    
+
+    def evaluate(self, x, y):
+        """
+            SubstringKernel.evaluate
+            K(x,y) = sum_u phi_u(x)*phi_u(y)
+
+            Parameters
+            ----------
+            x: string.
+            y: string.
+
+            Returns
+            ----------
+            res: float.
+        """
+        m = len(x)
+        n = len(y)
+        
+        self.B = np.tile(-1,[m,n,self.k-1])
+        self.b = np.tile(-1,[m,n,self.k-1])
+
+        
+        return self._K(x,y,self.k)
+        
+    
+    def _K(self, x, y, i):
+        m = len(x)
+        n = len(y)
+        
+        if min(m,n) < i:
+            return 0
+        
+        s = x[-1]
+        v = self._K(x[:m-1],y,i)
+        for j in range(n):
+            if y[j] == s:
+                v += (self._B(x[:m-1],y[:j],i-1)*self.lambd**2)
+        return v
+    
+    
+    def _B(self, x, y, i):
+        m = len(x)
+        n = len(y)
+        if i == 0:
+            return 1
+        if min(m,n)< i:
+            return 0
+        
+        if self.B[m-1,n-1,i-1] != -1:
+            return self.B[m-1,n-1,i-1]
+        
+        # Recursion
+        s = x[-1]
+        
+        v = self.lambd*self._B(x[:m-1],y,i)
+        v += self._b(x,y,i)
+        
+        self.B[m-1,n-1,i-1] = v
+        return v
+    
+    
+    def _b(self, x, y, i):
+        m = len(x)
+        n = len(y)
+        if i == 0:
+            return 1
+        if min(m,n) < i:
+            return 0
+        
+        s = x[-1]
+        
+        if self.b[m-1,n-1,i-1] != -1:
+            return self.b[m-1,n-1,i-1]
+        
+        if y[n-1] == s:
+            v = self.lambd*self._b(x,y[:n-1],i) \
+                + self.lambd**2*self._B(x[:m-1],y[:n-1],i-1)
+            self.b[m-1,n-1,i-1] = v
+            return v
+        
+        test = False
+        pos=-1
+        for p in range(n-2,-1,-1):
+            if y[p] == s:
+                test = True
+                pos = p
+                break
+        if not test:
+            v = 0
+        else:
+            v = np.power(self.lambd, n-pos-1)*self._b(x,y[:pos+1],i)
+            
+        self.b[m-1,n-1,i-1] = v
+        return v
+        
+    
+
+        
