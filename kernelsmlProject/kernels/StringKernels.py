@@ -113,8 +113,11 @@ class SpectrumKernelPreindexed(Kernel):
 
             Parameters
             ----------
-            k: int. Length of the substrings to be looked for.
-            lexicon: dict. Map key to integer.
+            k: int. 
+                Length of the substrings to be looked for.
+            lexicon: dict. 
+                Map key to integer.
+            enable_joblib: bool.
         """
 
         super().__init__(enable_joblib)
@@ -203,6 +206,8 @@ class SpectrumKernelPreindexed(Kernel):
             Parameters
             ----------
             X: list(string) (length m).
+            m: int.
+                Length of X.
 
             Returns
             ----------
@@ -264,7 +269,7 @@ class SpectrumKernelPreindexed(Kernel):
         Phi = sparse.lil_matrix((m, self.lex_size ** self.k), dtype=np.uint32)
         # TODO: is there a way to speed this double loop up?
         # A solution would be to use np.bincount... but this imply using
-        # nonsparse vectors.
+        # nonsparse vectors. Yet this seems tractable and fast (~1-10s)
         # Trying to use vectorized operations, like Phi[i, X_indexed[i, :]] += 1
         # do not work since then each index would be counted once, even if it
         # appears multiple times.
@@ -281,7 +286,6 @@ class SpectrumKernelPreindexed(Kernel):
         """
             SpectrumKernelPreindexed.compute_K_train
             Compute K from data.
-            Overrides generic method.
 
             Parameters
             ----------
@@ -324,8 +328,6 @@ class SpectrumKernelPreindexed(Kernel):
             SpectrumKernelPreindexed.compute_K_test
             Gets the matrix K_t = [K(t_i, x_j)] where t_i is the ith test sample
             and x_j is the jth training sample.
-            NON CENTERED KERNEL VALUES version. The centered version is defined
-            in derived class CenteredKernel.
 
             Parameters
             ----------
@@ -367,6 +369,11 @@ class SpectrumKernelPreindexed(Kernel):
         return K_t
 
 
+########################################################################
+### MultipleSpectrumKernel                                                         
+########################################################################
+
+
 class MultipleSpectrumKernel(Kernel):
     """
         MultipleSpectrumKernel
@@ -383,8 +390,10 @@ class MultipleSpectrumKernel(Kernel):
 
             Parameters
             ----------
-            k: int. Length of the substrings to be looked for.
-            lexicon: dict. Map key to integer.
+            list_k: list(int). 
+                List of k such that the kernel is the sum of the Phi_k.
+            lexicon: dict. 
+                Map key to integer.
         """
 
         super().__init__(enable_joblib)
@@ -422,7 +431,6 @@ class MultipleSpectrumKernel(Kernel):
         """
             MultipleSpectrumKernel.compute_K_train
             Compute K from data.
-            Overrides generic method.
 
             Parameters
             ----------
@@ -454,11 +462,9 @@ class MultipleSpectrumKernel(Kernel):
 
     def compute_K_test(self, Xtr, n, Xte, m, verbose=True):
         """
-            SpectrumKernelPreindexed.compute_K_test
+            MultipleSpectrumKernel.compute_K_test
             Gets the matrix K_t = [K(t_i, x_j)] where t_i is the ith test sample
             and x_j is the jth training sample.
-            NON CENTERED KERNEL VALUES version. The centered version is defined
-            in derived class CenteredKernel.
 
             Parameters
             ----------
@@ -479,7 +485,7 @@ class MultipleSpectrumKernel(Kernel):
         """
 
         if verbose:
-            print("Called SpectrumKernelPreindexed.compute_K_test")
+            print("Called MultipleSpectrumKernel.compute_K_test")
             start = time.time()
         
         K_t = np.zeros((m, n))
@@ -487,7 +493,12 @@ class MultipleSpectrumKernel(Kernel):
             K_t += kernel.compute_K_test(Xtr, n, Xte, m, verbose)
 
         return K_t
-    
+
+
+########################################################################
+### SubstringKernel                                                         
+########################################################################
+
 
 class SubstringKernel(Kernel):
     """
