@@ -171,47 +171,8 @@ class CenteredKernel(Kernel):
     def __init__(self, kernel):
         super().__init__(kernel.enable_joblib)
         self.kernel = kernel
+        self.eta = None
 
-    """
-        CenteredKernel.train
-        Train the instance to center kernel values.
-        
-        Parameters
-        ----------
-        Xtr: list(object). 
-            Training data, of the form X = [[x1], ...].
-        n: int. 
-            Number of lines of Xtr.
-        K: np.array(shape=(n, n)). 
-            Optional. Kernel Gram matrix if available.    
-    """
-
-    def train(self, Xtr, n, K=None, verbose=True):
-        self.Xtr = Xtr
-        self.n = n
-        if K is None:
-            # Compute the non-centered Gram matrix
-            self.K = self.kernel.compute_K_train(self.Xtr, self.n, verbose=verbose)
-        else:
-            self.K = K
-
-        self.eta = np.sum(self.K) / np.power(self.n, 2)
-
-        # Store centered kernel
-        U = np.ones(self.K.shape) / self.n
-        self.centered_K = (np.eye(self.n) - U).dot(self.K) \
-            .dot(np.eye(self.n) - U)
-
-    def get_centered_K(self):
-        """
-            CenteredKernelernel.get_centered_K
-            Gets the centered Gram matrix.
-
-            Returns
-            ----------
-            centered_K: np.array.
-        """
-        return self.centered_K
 
     def evaluate(self, x, y):
         """
@@ -238,6 +199,54 @@ class CenteredKernel(Kernel):
         # print("centered")
         return self.kernel.evaluate(x, y) - tmp / self.n + self.eta
 
+	
+    def compute_K_train(self, Xtr, n, verbose=True, K=None):
+        """
+            Kernel.compute_K_train
+            Compute K from data.
+            JOBLIB GENERIC VERSION
+
+            Parameters
+            ----------
+            Xtr: list(object).
+                Training data.
+            n: int.
+                Length of Xtr.
+            K: np.array(shape=(n, n)). 
+                Optional. Kernel Gram matrix if available.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K: np.array.
+        """
+        
+        if verbose:
+            print("Called compute_K_train (CENTERED VERSION)")
+            start = time.time()
+        
+        self.Xtr = Xtr
+        self.n = n
+        if K is None:
+            # Compute the non-centered Gram matrix
+            self.K_tr_nc = self.kernel.compute_K_train(self.Xtr, self.n, verbose=verbose)
+        else:
+            self.K_tr_nc = K
+            
+        self.eta = np.sum(self.K_tr_nc) / np.power(self.n, 2)
+
+        # Store centered kernel
+        U = np.ones(self.K_tr_nc.shape) / self.n
+        self.K_tr_c = (np.eye(self.n) - U).dot(self.K_tr_nc) \
+            .dot(np.eye(self.n) - U)
+        
+        if verbose:
+            end = time.time()
+            print("end. Time elapsed:", "{0:.2f}".format(end - start))
+        
+        return self.K_tr_c
+		
     def compute_K_test(self, Xtr, n, Xte, m, verbose=True):
         """
             CenteredKernel.compute_K_test
@@ -268,21 +277,47 @@ class CenteredKernel(Kernel):
             print("Called compute_K_test (CENTERED VERSION)")
             start = time.time()
 
+        if self.eta is None:
+            self.compute_K_train(Xtr, n, verbose=verbose)
+			
         # Get the non-centered K test
-        K_t_nc = self.kernel.compute_K_test(Xtr, n, Xte, m, verbose)
+        K_te_nc = self.kernel.compute_K_test(Xtr, n, Xte, m, verbose)
 
         # The new K_t is the non-centered matrix
         #   + 1/n * sum_l(K_{k, l}) where k is test index and l is train index
         #   + 1/n * sum_l(K_{l, j}) where l and j are train indices
         #   + 1/n^2 * sum_{l, l'}(K_{l, l'}) where l, l' are train indices
         #   (the latter quantity was stored in self.eta)
-        K_t = K_t_nc + (-1 / self.n) * (
-                    K_t_nc.dot(np.ones((self.n, self.n))) +
-                    np.ones((m, self.n)).dot(self.K))
-        K_t += self.eta
+        K_te_c = K_te_nc + (-1 / self.n) * (
+                    K_te_nc.dot(np.ones((self.n, self.n))) +
+                    np.ones((m, self.n)).dot(self.K_tr_nc))
+        K_te_c += self.eta
 
         if verbose:
             end = time.time()
             print("end. Time elapsed:", "{0:.2f}".format(end - start))
 
-        return K_t
+        return K_te_c
+		
+    def get_non_centered_K_tr(self):
+        """
+            CenteredKernelernel.get_non_centered_K_tr
+            Gets the non-centered Gram matrix.
+
+            Returns
+            ----------
+            K_tr_nc: np.array.
+        """
+        return self.K_tr_nc
+		
+    def get_centered_K_tr(self):
+        """
+            CenteredKernelernel.get_centered_K_tr
+            Gets the centered Gram matrix.
+
+            Returns
+            ----------
+            K_tr_c: np.array.
+        """
+        return self.K_tr_c
+		

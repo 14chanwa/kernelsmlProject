@@ -55,6 +55,74 @@ class LinearKernel(Kernel):
         """
 
         return x.dot(y.transpose())
+    
+    def compute_K_train(self, Xtr, n, verbose=True):
+        """
+            LinearKernel.compute_K_train
+            Compute K from data.
+
+            Parameters
+            ----------
+            Xtr: list(object).
+                Training data.
+            n: int.
+                Length of Xtr.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K: np.array.
+        """
+
+        if verbose:
+            print("LinearKernel.compute_K_train")
+        
+        Ktr = Xtr.dot(Xtr.T)
+        
+        if verbose:
+            print("end")
+        
+        return Ktr
+    
+    def compute_K_test(self, Xtr, n, Xte, m, verbose=True):
+        """
+            LinearKernel.compute_K_test
+            Gets the matrix K_t = [K(t_i, x_j)] where t_i is the ith test sample
+            and x_j is the jth training sample.
+
+            Parameters
+            ----------
+            Xtr: list(object).
+                Training data.
+            n: int.
+                Length of Xtr.
+            Xte: list(object).
+                Test data.
+            m: int.
+                Length of Xte.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K_te: np.array (shape=(m,n)).
+        """
+
+        if verbose:
+            print("LinearKernel.compute_K_test")
+
+        K_te = Xte.dot(Xtr.T)
+
+        if verbose:
+            print("end")
+
+        return K_te
+    
+
+########################################################################
+### GaussianKernel                                                         
+########################################################################
 
 
 @numba.jit(nopython=True, nogil=True, cache=True)
@@ -87,11 +155,6 @@ def _jit_Kte_gaussian(Xtr, n, Xte, m, gamma):
         K_t[:, j] = res
 
     return K_t
-
-
-########################################################################
-### GaussianKernel                                                         
-########################################################################
 
 
 class GaussianKernel(Kernel):
@@ -144,9 +207,13 @@ class GaussianKernel(Kernel):
 
         if verbose:
             print("GaussianKernel.compute_K_train")
-            res = _jit_Ktr_gaussian(Xtr, n, self.gamma)
+        
+        K_tr = _jit_Ktr_gaussian(Xtr, n, self.gamma)
+        
+        if verbose:
             print("end")
-        return res
+        
+        return K_tr
 
     @numba.jit(cache=True)
     def compute_K_test(self, Xtr, n, Xte, m, verbose=True):
@@ -179,9 +246,9 @@ class GaussianKernel(Kernel):
         if verbose:
             print("GaussianKernel.compute_K_test")
 
-        K_t = _jit_Kte_gaussian(Xtr, n, Xte, m, self.gamma)
+        K_te = _jit_Kte_gaussian(Xtr, n, Xte, m, self.gamma)
 
         if verbose:
             print("end")
 
-        return K_t
+        return K_te

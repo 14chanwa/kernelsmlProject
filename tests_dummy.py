@@ -17,7 +17,7 @@ print("Test: try to center 2 vectors")
 n = 2
 X = np.array([[0, 2], [0, 0]], dtype=float)
 centeredKernel = CenteredKernel(LinearKernel())
-centeredKernel.train(X, n)
+centeredKernel.compute_K_train(X, n)
 print(centeredKernel.evaluate(X[0,:], X[1,:]))
 print(centeredKernel.evaluate(np.array([1, 1]), X[1,:]))
 
@@ -25,7 +25,7 @@ print("Test: try to center gaussian kernel of mean 1")
 n = 100
 X = np.random.normal(1.0, 1.0, size=(100, 1))
 print(np.mean(X))
-centeredKernel.train(X, n)
+centeredKernel.compute_K_train(X, n)
 Xc = np.zeros((100,))
 for i in range(Xc.size):
     Xc[i] = centeredKernel.evaluate(np.array([1]).reshape((1, 1)), X[i])

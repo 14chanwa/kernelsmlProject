@@ -22,7 +22,6 @@ Multithreading capabilities:
 
 import numpy as np
 import scipy.sparse as sparse
-import multiprocessing
 import time
 from kernelsmlProject.kernels.AbstractKernels import *
 
@@ -262,12 +261,21 @@ class SpectrumKernelPreindexed(Kernel):
             raise Exception("Number too big for uint16!")
         # Put a uint32 since this matrix will be multiplied by itself at
         # some point
-        Phi = sparse.dok_matrix((m, self.lex_size ** self.k), dtype=np.uint32)
+        Phi = sparse.lil_matrix((m, self.lex_size ** self.k), dtype=np.uint32)
+        # TODO: is there a way to speed this double loop up?
+        # A solution would be to use np.bincount... but this imply using
+        # nonsparse vectors.
+        # Trying to use vectorized operations, like Phi[i, X_indexed[i, :]] += 1
+        # do not work since then each index would be counted once, even if it
+        # appears multiple times.
+        # for i in range(X_indexed.shape[0]):
+            # for j in range(X_indexed.shape[1]):
+                # Phi[i, X_indexed[i, j]] += 1
         for i in range(X_indexed.shape[0]):
-            for j in range(X_indexed.shape[1]):
-                Phi[i, X_indexed[i, j]] += 1
+            tmp = np.bincount(X_indexed[i, :])
+            Phi[i, :tmp.size] += tmp
 
-        return Phi.tocsr()
+        return Phi
 
     def compute_K_train(self, Xtr, n, verbose=True):
         """
