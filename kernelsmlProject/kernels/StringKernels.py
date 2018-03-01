@@ -505,7 +505,7 @@ class SubstringKernel(Kernel):
         SubstringKernel
     """
 
-    def __init__(self, k, lambd, enable_joblib=False):
+    def __init__(self, k, lambd, lexicon, enable_joblib=False):
         """
             SubstringKernel.__init__
 
@@ -513,12 +513,17 @@ class SubstringKernel(Kernel):
             ----------
             k: int. Length of the substrings to be looked for.
             lambd: float. Parameter of substring kernel
+            lexicon: dict. 
+                Map key to integer.
         """
 
         super().__init__(enable_joblib)
         self.k = k
         self.lambd = lambd
-
+        self.lexicon = lexicon
+        self.lex_size = len(lexicon)
+        
+    
     def evaluate(self, x, y):
         """
             SubstringKernel.evaluate
@@ -541,17 +546,21 @@ class SubstringKernel(Kernel):
 
         
         return self._K(x,y,self.k)
-        
+    
     
     def _K(self, x, y, i):
         m = len(x)
         n = len(y)
+
+        if i == 0:
+            return 1
         
         if min(m,n) < i:
             return 0
         
         s = x[-1]
-        v = self._K(x[:m-1],y,i)
+
+        v = self.lambd*self._K(x[:m-1],y,i)
         for j in range(n):
             if y[j] == s:
                 v += (self._B(x[:m-1],y[:j],i-1)*self.lambd**2)
@@ -570,49 +579,138 @@ class SubstringKernel(Kernel):
             return self.B[m-1,n-1,i-1]
         
         # Recursion
-        s = x[-1]
         
-        v = self.lambd*self._B(x[:m-1],y,i)
-        v += self._b(x,y,i)
+        v = self.lambd*(self._B(x[:m-1],y,i)+self._B(x,y[:n-1],i)) - self.lambd**2*self._B(x[:m-1],y[:n-1],i)
+        if x[-1]==y[-1]:
+            v += self.lambd**2*self._B(x[:m-1],y[:n-1],i-1)
+        #v += self._b(x,y,i)
         
         self.B[m-1,n-1,i-1] = v
         return v
     
+    def encode_X(self,X,m):
+        # l is the length of the strings
+        # suppose they are all of the same length (otherwise, must do
+        # some more complicated matrix operations)
+        l = len(X[0])
+
+        # Let the code in the dictionary be of length < 256...
+        # Build the matrix Xtr_encoded such that Xtr_encoded[i, :] is
+        # the ith training sample encoded with the dictionnary
+        if self.lex_size >= 256:
+            raise Exception("Number too big for uint8!")
+        X_encoded = np.zeros((m,l), dtype=np.uint8)
+        for i in range(m):
+            X_encoded[i] = [self.lexicon[X[i][j]] for j in range(l)]
+        return X_encoded
     
-    def _b(self, x, y, i):
-        m = len(x)
-        n = len(y)
-        if i == 0:
-            return 1
-        if min(m,n) < i:
-            return 0
-        
-        s = x[-1]
-        
-        if self.b[m-1,n-1,i-1] != -1:
-            return self.b[m-1,n-1,i-1]
-        
-        if y[n-1] == s:
-            v = self.lambd*self._b(x,y[:n-1],i) \
-                + self.lambd**2*self._B(x[:m-1],y[:n-1],i-1)
-            self.b[m-1,n-1,i-1] = v
-            return v
-        
-        test = False
-        pos=-1
-        for p in range(n-2,-1,-1):
-            if y[p] == s:
-                test = True
-                pos = p
-                break
-        if not test:
-            v = 0
+    
+    def compute_K_train(self, Xtr, n, verbose=True):
+        """
+            SubstringKernel.compute_K_train
+            Compute K from data.
+
+            Parameters
+            ----------
+            Xtr: list(string).
+                Training data.
+            n: int.
+                Length of Xtr.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K: np.array.
+        """
+
+        if verbose:
+            print("Called SubstringKernel.compute_K_train")
+            start = time.time()
+
+
+        Xtr_enc = self.encode_X(Xtr, n)
+
+        K = np.zeros([n, n], dtype=np.float64)
+         
+        if self.enable_joblib:
+            if verbose:
+                print("Called joblib loop on n_jobs=", multiprocessing.cpu_count())
+
+            # Better results when processing from the larger to the shorter
+            # line
+            results = jl.Parallel(n_jobs=multiprocessing.cpu_count())(
+                    jl.delayed(self._fill_train_line)(Xtr_enc, i)
+                    for i in range(n - 1, -1, -1)
+                )
+            for i in range(n):
+                K[:i + 1, i] = results[n - 1 - i]
         else:
-            v = np.power(self.lambd, n-pos-1)*self._b(x,y[:pos+1],i)
+            for i in range(n):
+                K[:i + 1, i] = self._fill_train_line(Xtr_enc, i)
+
+        # Symmetrize
+        K = K + K.T - np.diag(K.diagonal())
+
+        if verbose:
+            end = time.time()
+            print("end. Time elapsed:", "{0:.2f}".format(end - start))
+
+        return K
+    
+
+    def compute_K_test(self, Xtr, n, Xte, m, verbose=True):
+        """
+            SubstringKernel.compute_K_test
+            Gets the matrix K_t = [K(t_i, x_j)] where t_i is the ith test sample
+            and x_j is the jth training sample.
+
+            Parameters
+            ----------
+            Xtr: list(object).
+                Training data.
+            n: int.
+                Length of Xtr.
+            Xte: list(object).
+                Test data.
+            m: int.
+                Length of Xte.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K_t: np.array (shape=(m,n)).
+        """
+
+        if verbose:
+            print("Called SpectrumKernelPreindexed.compute_K_test")
+            start = time.time()
             
-        self.b[m-1,n-1,i-1] = v
-        return v
+        Xtr_enc = self.encode_X(Xtr, n)
+        Xte_enc = self.encode_X(Xte, m)
         
+        K_t = np.zeros((m, n))
+
+        if self.enable_joblib:
+            if verbose:
+                print("Called joblib loop on n_jobs=", multiprocessing.cpu_count())
+
+            results = jl.Parallel(n_jobs=multiprocessing.cpu_count())(
+                    jl.delayed(self._fill_test_column)(Xte_enc, Xtr_enc, j, m)
+                    for j in range(n)
+                )
+            for j in range(n):
+                K_t[:, j] = results[j]
+        else:
+            for j in range(n):
+                K_t[:, j] = self._fill_test_column(Xte_enc, Xtr_enc, j, m)
+
+        if verbose:
+            end = time.time()
+            print("end. Time elapsed:", "{0:.2f}".format(end - start))
+
+        return K_t
     
 
         
