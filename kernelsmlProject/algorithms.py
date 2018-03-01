@@ -50,7 +50,6 @@ class AlgorithmInstance(ABC):
             Returns
             ----------
             Y: np.array (shape=(m,))
-
         """
 
         if self.verbose:
@@ -92,12 +91,8 @@ class AlgorithmInstance(ABC):
                 print("Center K")
 
             # Major issue solved: do NOT center an already centered kernel
-            try:
-                self.centeredKernel
-            except AttributeError:
-                self.centeredKernel = CenteredKernel(self.kernel)
-
-            self.kernel = self.centeredKernel
+            if not isinstance(self.kernel, CenteredKernel):
+                self.kernel = CenteredKernel(self.kernel)
 
         if K is None:
             if self.verbose:
