@@ -713,4 +713,67 @@ class SubstringKernel(Kernel):
         return K_t
     
 
+
+
+########################################################################
+### WDKernel (Weighted degree Kernel
+###           from:     Large Scale Genomic Sequence SVM Classifiers
+###                     (Sonnenburg et al., 2005)                                         
+########################################################################
+
+class WDKernel(Kernel):
+    """
+        WDKernel
+    """
+
+    def __init__(self, k, lexicon, enable_joblib=False):
+        """
+            WDKernel.__init__
+
+            Parameters
+            ----------
+            k: int. Length of the substrings to be looked for.
+            lexicon: dict. 
+                Map key to integer.
+        """
+
+        super().__init__(enable_joblib)
+        self.k = k
+        self.lexicon = lexicon
+        self.lex_size = len(lexicon)
         
+    
+    def evaluate(self, x, y):
+        """
+            WDKernel.evaluate
+            K(x,y) = 
+
+            Parameters
+            ----------
+            x: string.
+            y: string.
+
+            Returns
+            ----------
+            res: float.
+        """
+        
+        m = len(x)
+        
+        res = 0
+        
+        i = 0
+        while (i < m):
+            while (i < m) and (x[i]!=y[i]) :
+                i += 1
+            B = 0
+            while  (i < m) and (x[i]==y[i]):
+                B += 1
+                i += 1
+            if B>self.k:
+                res += (3*B-self.k+1)/3
+            else:
+                res += B*(-B**2 + 3*self.k*B + 3*self.k + 1)/(3*self.k*(self.k+1))
+            
+        
+        return res
