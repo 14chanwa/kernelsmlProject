@@ -127,32 +127,27 @@ class LinearKernel(Kernel):
 
 @numba.jit(nopython=True, nogil=True, cache=True)
 def _jit_ev_gaussian(x, y, gamma):
-    return np.exp(-gamma * np.sum(np.power(x - y, 2)))
-
+    tmp = x - y
+    return np.exp(-gamma * np.dot(tmp, tmp))
 
 @numba.jit(nopython=True, parallel=True, nogil=True)
 def _jit_Ktr_gaussian(Xtr, n, gamma):
     K = np.zeros((n, n), dtype=np.float64)
 
     for i in numba.prange(n):
-        res = np.zeros((i + 1,))
         for j in numba.prange(i + 1):
-            res[j] = _jit_ev_gaussian(Xtr[i], Xtr[j], gamma)
-        K[:i + 1, i] = res
+            K[j, i] = _jit_ev_gaussian(Xtr[i], Xtr[j], gamma)
 
     # Symmetrize
     return K + K.T - np.diag(np.diag(K))
-
 
 @numba.jit(nopython=True, parallel=True, nogil=True)
 def _jit_Kte_gaussian(Xtr, n, Xte, m, gamma):
     K_t = np.zeros((m, n), dtype=np.float64)
 
     for j in numba.prange(n):
-        res = res = np.zeros((m,), dtype=np.float64)
         for k in numba.prange(m):
-            res[k] = _jit_ev_gaussian(Xte[k], Xtr[j], gamma)
-        K_t[:, j] = res
+            K_t[k, j] = _jit_ev_gaussian(Xte[k], Xtr[j], gamma)
 
     return K_t
 

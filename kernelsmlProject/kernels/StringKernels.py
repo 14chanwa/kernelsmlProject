@@ -23,6 +23,7 @@ Multithreading capabilities:
 import numpy as np
 import scipy.sparse as sparse
 import time
+import numba
 from kernelsmlProject.kernels.AbstractKernels import *
 
 
@@ -493,6 +494,216 @@ class MultipleSpectrumKernel(Kernel):
             K_t += kernel.compute_K_test(Xtr, n, Xte, m, verbose)
 
         return K_t
+
+
+
+########################################################################
+### MultipleSpectrumKernel_Gaussian                                                       
+########################################################################
+
+@numba.jit(nopython=True, parallel=True, nogil=True)
+def _add_all_squares(Phi_i, Phi_j):
+    res = np.zeros((Phi_i.shape[0], Phi_j.shape[0]))
+    # Add (Phi[i] - Phi[j])^2 to the term (i, j)
+    for i in numba.prange(Phi_i.shape[0]):
+        for j in numba.prange(Phi_j.shape[0]):
+            u = Phi_i[i,:] - Phi_j[j,:]
+            res[i, j] += np.dot(u, u)
+    return res
+
+
+@numba.jit(nopython=True, parallel=True, nogil=True)
+def _add_all_squares_sym(Phi):
+    res = np.zeros((Phi.shape[0], Phi.shape[0]))
+    # Add (Phi[i] - Phi[j])^2 to the term (i, j)
+    for i in numba.prange(Phi.shape[0]):
+        for j in numba.prange(i):
+            u = Phi[i,:] - Phi[j,:]
+            res[i, j] += np.dot(u, u)
+            res[j, i] += res[i, j]
+    return res
+
+
+class MultipleSpectrumGaussianKernel(Kernel):
+    """
+        MultipleSpectrumGaussianKernel
+        Let k_1, k_2... be possible lengths of consecutive substrings.
+        Let Phi_{k_1}, Phi_{k_2}... be the transforms by the Spectrum
+        kernel ; then define Phi associated to this kernel as the
+        sum of all these values. 
+        Stash Gaussian kernel on top of the concatenated Phis
+    """
+
+    def __init__(self, list_k, lexicon, gamma, enable_joblib=False):
+        """
+            MultipleSpectrumGaussianKernel.__init__
+
+            Parameters
+            ----------
+            list_k: list(int). 
+                List of k such that the kernel is the sum of the Phi_k.
+            lexicon: dict. 
+                Map key to integer.
+            gamma: float.
+                The parameter of the gaussian kernel on top of the Phis.
+        """
+
+        super().__init__(enable_joblib)
+        self.list_k = list_k
+        self.lexicon = lexicon
+        self.lex_size = len(lexicon)
+        
+        # Gaussian parameter
+        self.gamma = gamma
+        
+        # Kept columns
+        self.kept_columns = []
+        # For normalization...
+        self.mus = []
+        self.sigmas = []
+        self.total_nb_dims = 0
+        
+        # Create a list of kernels to be evaluated
+        self.list_kernels = []
+        for i in range(len(self.list_k)):
+            self.list_kernels.append(SpectrumKernelPreindexed(self.list_k[i], self.lexicon))
+    
+    def evaluate(self, x, y):
+        """
+            MultipleSpectrumGaussianKernel.evaluate
+            Compute K_gaussian (Phi(x), (Phi(y)))
+
+            Parameters
+            ----------
+            x: (string, dictionary, dictionary)
+            y: (string, dictionary, dictionary)
+
+            Returns
+            ----------
+            res: float.
+        """
+        
+        res = 0
+        for kernel in self.list_kernels:
+            u = kernel._phi(x) - kernel._phi(y)
+            res += u.dot(u)
+        res = np.exp(-self.gamma * res)
+        
+        return res
+    
+    #~ def _add_all_squares_j(self, Phi_i, Phi, ind_max):
+        #~ res = np.zeros((1, Phi.shape[0]))
+        #~ # Add (Phi[i] - Phi[j])^2 to the term (i, j)
+        #~ for j in range(ind_max-1):
+            #~ u = Phi_i.astype(dtype=np.int32, casting='unsafe', copy=False) - Phi[j,:].astype(dtype=np.int32, casting='unsafe', copy=False)
+            #~ res[0, j] += u.dot(u.transpose())[0, 0]
+        #~ return res
+    
+    @numba.jit(cache=True)
+    def compute_K_train(self, Xtr, n, verbose=True):
+        """
+            MultipleSpectrumGaussianKernel.compute_K_train
+            Compute K from data.
+
+            Parameters
+            ----------
+            Xtr: list(string).
+                Training data.
+            n: int.
+                Length of Xtr.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K: np.array.
+        """
+
+        if verbose:
+            print("Called MultipleSpectrumKernel.compute_K_train")
+            start = time.time()
+
+        res = np.zeros((n, n))
+        for k in range(len(self.list_kernels)):
+            kernel = self.list_kernels[k]
+            # Compute Phi
+            Phi = kernel._phi_from_list(Xtr, n)
+            # Convert to dense by removing zero columns
+            self.kept_columns.append(Phi.getnnz(0)>0)
+            Phi = Phi[:,self.kept_columns[k]]
+            Phi = Phi.astype(np.float64).todense()
+            # Normalize
+            self.mus.append(np.mean(Phi, 0))
+            self.sigmas.append(np.std(Phi, 0))
+            self.total_nb_dims += Phi.shape[1]
+            Phi -= self.mus[k]
+            Phi /= self.sigmas[k]
+            # Compute sum square differences
+            res += _add_all_squares_sym(Phi)
+        
+        res /= self.total_nb_dims
+        
+        # Gaussianize
+        K = np.exp(-self.gamma * res)
+        
+        if verbose:
+            end = time.time()
+            print("end. Time elapsed:", "{0:.2f}".format(end - start))
+
+        return K
+
+    @numba.jit(cache=True)
+    def compute_K_test(self, Xtr, n, Xte, m, verbose=True):
+        """
+            MultipleSpectrumGaussianKernel.compute_K_test
+            Gets the matrix K_t = [K(t_i, x_j)] where t_i is the ith test sample
+            and x_j is the jth training sample.
+
+            Parameters
+            ----------
+            Xtr: list(object).
+                Training data.
+            n: int.
+                Length of Xtr.
+            Xte: list(object).
+                Test data.
+            m: int.
+                Length of Xte.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K_t: np.array (shape=(m,n)).
+        """
+
+        if verbose:
+            print("Called MultipleSpectrumKernel.compute_K_test")
+            start = time.time()
+        
+        res = np.zeros((m, n))
+        for k in range(len(self.list_kernels)):
+            kernel = self.list_kernels[k]
+            # Compute Phi
+            Phi_i = kernel._phi_from_list(Xte, m).tocsr()
+            Phi_j = kernel._phi_from_list(Xtr, n).tocsr()
+            # Convert to dense by removing zero columns
+            Phi_i = Phi_i[:, self.kept_columns[k]].astype(np.float64).todense()
+            Phi_j = Phi_j[:, self.kept_columns[k]].astype(np.float64).todense()
+            Phi_i -= self.mus[k]
+            Phi_j -= self.mus[k]
+            Phi_i /= self.sigmas[k]
+            Phi_j /= self.sigmas[k]
+            # Compute sum square differences
+            res += _add_all_squares(Phi_i, Phi_j)
+        
+        res /= self.total_nb_dims
+        
+        # Gaussianize
+        K_t = np.exp(-self.gamma * res)
+
+        return K_t
+
 
 
 ########################################################################
