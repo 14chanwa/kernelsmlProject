@@ -777,3 +777,127 @@ class WDKernel(Kernel):
             
         
         return res
+
+
+########################################################################
+### MismatchKernel 
+###           from: Mismatch string kernels for SVM protein classification
+###                 (Leslie et al., 2003)                                         
+########################################################################
+
+class MismatchKernel(Kernel):
+    """
+        MismatchKernel
+    """
+
+    def __init__(self, k, m, lexicon, normalize = False, enable_joblib=False):
+        """
+            MismatchKernel.__init__
+
+            Parameters
+            ----------
+            k: int. Length of the substrings to be looked for.
+            m: int. Number of allowed mismatches within a substring
+            lexicon: dict. 
+                Map key to integer.
+            enable_joblib: bool.
+        """
+
+        super().__init__(enable_joblib)
+        self.k = k
+        self.m = m
+        self.lexicon = lexicon
+        self.lex_size = len(lexicon)
+        self.combinations = 
+        
+    def get_combinations(self):
+        
+    
+    def get_preindexed_value(self, lookup_str):
+        """
+        MismatchKernel.get_index
+
+        Preindex lexicon, for instance a -> 1, b -> 2... z -> 26
+        Here we work with DNA sequences, thus the lexicon is shallow
+        (i.e. size lex_size=4). We take as the computed index simply
+        the sum in base lex_size (i.e. for a sequence abcd of length
+        k=4 we would have 0 + 1 * 4 + 2 * 4**2 + 3 * 4**3, i.e. an
+        indexing on 256 values. We can go reasonably far (indices grow
+        with 4^{k-1}, we are limited, I believe, to int32).
+        We could concatenate arrays for combining values l < k,
+        until some point (the indices grow with (4**k - 1 / 3)).
+
+
+        Parameters
+        ----------
+        lookup_str: string.
+
+        Returns
+        ----------
+        res: int.
+        """
+
+        res = 0
+        for i in range(self.k):
+            res += self.lexicon[lookup_str[i]] * self.lex_size ** i
+        # print(lookup_str, res)
+        return res
+    
+    
+    def evaluate(self, x, y):
+        """
+            WDKernel.evaluate
+            K(x,y) = 
+
+            Parameters
+            ----------
+            x: string.
+            y: string.
+
+            Returns
+            ----------
+            res: float.
+        """
+        
+        m = len(x)
+        
+        res = 0
+        
+        i = 0
+        while (i < m):
+            while (i < m) and (x[i]!=y[i]) :
+                i += 1
+            B = 0
+            while  (i < m) and (x[i]==y[i]):
+                B += 1
+                i += 1
+            if B>self.k:
+                res += (3*B-self.k+1)/3
+            else:
+                res += B*(-B**2 + 3*self.k*B + 3*self.k + 1)/(3*self.k*(self.k+1))
+            
+        
+        return res
+
+    def _phi(self, x):
+        """
+        Mismatch._phi
+        Compute Phi(x). Unit version (slow).
+
+        Parameters
+        ----------
+        x: string.
+
+        Returns
+        ----------
+        res: np.array((self.lex_size**self.k)).
+        Counts the number of substrings by index.
+        """
+
+        # Suppose the values will never go above uint16...
+        # Otherwise, will have to use scipy.sparse
+        phi_x = np.zeros(self.lex_size ** self.k, dtype=np.uint16)
+        for l in range(len(x) - self.k + 1):
+            phi_x[self.get_preindexed_value(x[l:l + self.k])] += 1
+        # ~ print(phi_x)
+        return phi_x
