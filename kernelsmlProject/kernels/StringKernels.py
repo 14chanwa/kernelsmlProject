@@ -108,7 +108,7 @@ class SpectrumKernelPreindexed(Kernel):
         SpectrumKernelPreindexed
     """
 
-    def __init__(self, k, lexicon, enable_joblib=False):
+    def __init__(self, k, lexicon, remove_dimensions=False, normalize=False, enable_joblib=False):
         """
             SpectrumKernelPreindexed.__init__
 
@@ -125,6 +125,8 @@ class SpectrumKernelPreindexed(Kernel):
         self.k = k
         self.lexicon = lexicon
         self.lex_size = len(lexicon)
+        self.normalize = normalize
+        self.remove_dimensions = remove_dimensions
 
         # ~ print(lexicon)
         # ~ print(self.lex_size)
@@ -262,12 +264,12 @@ class SpectrumKernelPreindexed(Kernel):
 
         # Now fill a sparse matrix of size (n, self.lex_size**self.k)
         # containing the counts of each substring
-        # Assume the counts are always less than l-k+1 < 65535
-        if l - self.k + 1 >= 65535:
-            raise Exception("Number too big for uint16!")
-        # Put a uint32 since this matrix will be multiplied by itself at
+        #~ # Assume the counts are always less than l-k+1 < 65535
+        #~ if l - self.k + 1 >= 65535:
+            #~ raise Exception("Number too big for uint16!")
+        #~ # Put a uint32 since this matrix will be multiplied by itself at
         # some point
-        Phi = sparse.lil_matrix((m, self.lex_size ** self.k), dtype=np.uint32)
+        Phi = sparse.lil_matrix((m, self.lex_size ** self.k), dtype=np.float64)
         # TODO: is there a way to speed this double loop up?
         # A solution would be to use np.bincount... but this imply using
         # nonsparse vectors. Yet this seems tractable and fast (~1-10s)
@@ -309,15 +311,39 @@ class SpectrumKernelPreindexed(Kernel):
         l = len(Xtr[0])
 
         self.Phi_tr = self._phi_from_list(Xtr, n)
+        
+        if self.remove_dimensions:
+        
+            self.kept_columns = self.Phi_tr.getnnz(0)>0
+            
+            # Only keep nonzero columns
+            self.Phi_tr = self.Phi_tr[:,self.kept_columns]
+            if sparse.isspmatrix(self.Phi_tr):
+                self.Phi_tr = self.Phi_tr.todense()
+            
+            if self.normalize:
+                
+                # Compute mu and sigma
+                self.mus = np.mean(self.Phi_tr, 0)
+                self.sigmas = np.std(self.Phi_tr, 0)
+                # Center and normalize
+                self.Phi_tr -= self.mus
+                self.Phi_tr /= self.sigmas
+                
+                #~ self.Phi_tr = sparse.csr_matrix(self.Phi_tr)
+            
 
-        # ~ print(self.Phi_tr)
+            # ~ print(self.Phi_tr)
 
-        # Finally take the scalar product
-        # Assume the counts squared are always less than (l-k+1)**2 < 65535
-        if (l - self.k + 1) ** 2 >= 65535:
-            raise Exception("Number too big for uint16!")
-        K = np.array(self.Phi_tr.dot(self.Phi_tr.T).todense(), dtype=np.float64)
-
+            # Finally take the scalar product
+            # Assume the counts squared are always less than (l-k+1)**2 < 65535
+            if (l - self.k + 1) ** 2 >= 65535:
+                raise Exception("Number too big for uint16!")
+            K = np.array(self.Phi_tr.dot(self.Phi_tr.T), dtype=np.float64)
+        
+        else:
+            K = np.array(self.Phi_tr.dot(self.Phi_tr.T).todense(), dtype=np.float64)
+        
         if verbose:
             end = time.time()
             print("end. Time elapsed:", "{0:.2f}".format(end - start))
@@ -356,13 +382,31 @@ class SpectrumKernelPreindexed(Kernel):
         l = len(Xte[0])
 
         self.Phi_te = self._phi_from_list(Xte, m)
+        
+        if self.remove_dimensions:
+        
+            # Only keep nonzero columns at time of train
+            self.Phi_te = self.Phi_te[:,self.kept_columns]
+            if sparse.isspmatrix(self.Phi_te):
+                self.Phi_te = self.Phi_te.todense()
+            
+            if self.normalize:
+                
+                # Center and normalize
+                self.Phi_te -= self.mus
+                self.Phi_te /= self.sigmas
+                
+                #~ self.Phi_te = sparse.csr_matrix(self.Phi_te)
 
-        # Finally take the scalar product
-        # Assume the counts squared are always less than (l-k+1)**2 < 65535
-        if (l - self.k + 1) ** 2 >= 65535:
-            raise Exception("Number too big for uint16!")
-        K_t = np.array(self.Phi_te.dot(self.Phi_tr.T).todense(), dtype=np.float64)
-
+            # Finally take the scalar product
+            # Assume the counts squared are always less than (l-k+1)**2 < 65535
+            if (l - self.k + 1) ** 2 >= 65535:
+                raise Exception("Number too big for uint16!")
+            K_t = np.array(self.Phi_te.dot(self.Phi_tr.T), dtype=np.float64)
+        
+        else:
+            K_t = np.array(self.Phi_te.dot(self.Phi_tr.T).todense(), dtype=np.float64)
+            
         if verbose:
             end = time.time()
             print("end. Time elapsed:", "{0:.2f}".format(end - start))
@@ -385,7 +429,7 @@ class MultipleSpectrumKernel(Kernel):
         definite function, so a valid kernel.
     """
 
-    def __init__(self, list_k, lexicon, enable_joblib=False):
+    def __init__(self, list_k, lexicon, remove_dimensions=False, normalize=False, enable_joblib=False):
         """
             MultipleSpectrumKernel.__init__
 
@@ -401,11 +445,13 @@ class MultipleSpectrumKernel(Kernel):
         self.list_k = list_k
         self.lexicon = lexicon
         self.lex_size = len(lexicon)
+        self.normalize = normalize
+        self.remove_dimensions = remove_dimensions
         
         # Create a list of kernels to be evaluated
         self.list_kernels = []
         for i in range(len(self.list_k)):
-            self.list_kernels.append(SpectrumKernelPreindexed(self.list_k[i], self.lexicon))
+            self.list_kernels.append(SpectrumKernelPreindexed(self.list_k[i], self.lexicon, remove_dimensions=self.remove_dimensions, normalize=self.normalize))
     
     def evaluate(self, x, y):
         """

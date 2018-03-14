@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sat Feb 24 02:26:40 2018
-
 @author: Quentin
 """
 

@@ -75,7 +75,7 @@ k = 6
 Xtr, Ytr, Xte, Yte = split_train_test(Xtr2,Ytr2_labels,prop=0.8)
 n = Xtr.shape[0]
 
-current_kernel = SpectrumKernelPreindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
+current_kernel = SpectrumKernelPreindexed(k,lexicon={"A":0, "T":1, "C":2, "G":3},normalize=False,enable_joblib=True)
 
 
 
