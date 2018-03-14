@@ -91,8 +91,7 @@ lambd = k_fold_cross_validation(
 # Final bounds: [ 0.11274305555555555 , 0.11891527777777777 ] with test accuracy in [ 0.7470000000000001 , 0.7464999999999999 ]
 # For list_k=[1, 2, 3, 4, 5, 6, 7, 8]
 # Final bounds: [ 0.14308981481481478 , 0.1472046296296296 ] with test accuracy in [ 0.7474999999999999 , 0.7475 ] tr_acc ~ 0.95
-
-
+# Final bounds: [ 0.15234814814814815 , 0.15440555555555555 ] with test accuracy in [ 0.7530000000000001 , 0.7530000000000001 ] tr_acc ~ 0.95
 #%%
 # Xtr1
 
@@ -153,3 +152,4 @@ lambd = k_fold_cross_validation(
 # For list_k=[1, 2, 3, 4, 5, 6, 7, 8]
 # Final bounds: [ 0.05565 , 0.09268333333333333 ] with test accuracy in [ 0.648 , 0.6460000000000001 ]
 # Final bounds: [ 0.08239629629629629 , 0.0837679012345679 ] with test accuracy in [ 0.6425 , 0.643 ] tr_acc ~ 0.98
+# Final bounds: [ 0.07108055555555555 , 0.07313796296296296 ] with test accuracy in [ 0.6485000000000001 , 0.6485000000000001 ]

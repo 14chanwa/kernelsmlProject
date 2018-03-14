@@ -87,7 +87,7 @@ n = Xtr.shape[0]
 Ks = [3,5,8,10,15]
 acc = np.zeros(len(Ks))
 tr_acc = np.zeros(len(Ks))
-lambd = 100 / (2 * n)
+lambd = 0.083#100 / (2 * n)
 for i in range(len(Ks)):
     current_kernel = WDKernel(Ks[i],lexicon={"A":0, "T":1, "C":2, "G":3},enable_joblib=True)
 
@@ -107,5 +107,5 @@ for i in range(len(Ks)):
     
 
 # Tends to overfit even for small values of k (length of k-mers)
-# For Xtr2 and k = 3: test accuracy of 55%, training accuracy of 81%
-# and for increasing k, training accuracy fast tends to 1 (for k=8, training acc of 96%)
+# For Xtr2 and k = 3: test accuracy of 55%, training accuracy of 75%
+# and for increasing k, training accuracy fast tends to 1 (for k=10, training acc of 90%)
