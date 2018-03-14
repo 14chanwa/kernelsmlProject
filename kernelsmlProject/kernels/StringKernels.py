@@ -808,7 +808,7 @@ class MismatchKernel(Kernel):
         self.m = m
         self.lexicon = lexicon
         self.lex_size = len(lexicon)
-        self.combinations = 
+        #self.combinations = 
         
     def get_combinations(self):
         
