@@ -580,7 +580,7 @@ class MultipleSpectrumGaussianKernel(Kernel):
         Stash Gaussian kernel on top of the concatenated Phis
     """
 
-    def __init__(self, list_k, lexicon, gamma, enable_joblib=False):
+    def __init__(self, list_k, lexicon, gamma, normalize=False, enable_joblib=False):
         """
             MultipleSpectrumGaussianKernel.__init__
 
@@ -598,6 +598,8 @@ class MultipleSpectrumGaussianKernel(Kernel):
         self.list_k = list_k
         self.lexicon = lexicon
         self.lex_size = len(lexicon)
+        
+        self.normalize = normalize
         
         # Gaussian parameter
         self.gamma = gamma
@@ -666,7 +668,7 @@ class MultipleSpectrumGaussianKernel(Kernel):
         """
 
         if verbose:
-            print("Called MultipleSpectrumKernel.compute_K_train")
+            print("Called MultipleSpectrumGaussianKernel.compute_K_train")
             start = time.time()
 
         res = np.zeros((n, n))
@@ -678,12 +680,16 @@ class MultipleSpectrumGaussianKernel(Kernel):
             self.kept_columns.append(Phi.getnnz(0)>0)
             Phi = Phi[:,self.kept_columns[k]]
             Phi = Phi.astype(np.float64).todense()
-            # Normalize
-            self.mus.append(np.mean(Phi, 0))
-            self.sigmas.append(np.std(Phi, 0))
             self.total_nb_dims += Phi.shape[1]
+            
+            # Center
+            self.mus.append(np.mean(Phi, 0))
             Phi -= self.mus[k]
-            Phi /= self.sigmas[k]
+            
+            # Normalize
+            if self.normalize:
+                self.sigmas.append(np.std(Phi, 0))
+                Phi /= self.sigmas[k]
             # Compute sum square differences
             res += _add_all_squares_sym(Phi)
         
@@ -724,7 +730,7 @@ class MultipleSpectrumGaussianKernel(Kernel):
         """
 
         if verbose:
-            print("Called MultipleSpectrumKernel.compute_K_test")
+            print("Called MultipleSpectrumGaussianKernel.compute_K_test")
             start = time.time()
         
         res = np.zeros((m, n))
@@ -736,10 +742,12 @@ class MultipleSpectrumGaussianKernel(Kernel):
             # Convert to dense by removing zero columns
             Phi_i = Phi_i[:, self.kept_columns[k]].astype(np.float64).todense()
             Phi_j = Phi_j[:, self.kept_columns[k]].astype(np.float64).todense()
+            
             Phi_i -= self.mus[k]
             Phi_j -= self.mus[k]
-            Phi_i /= self.sigmas[k]
-            Phi_j /= self.sigmas[k]
+            if self.normalize:
+                Phi_i /= self.sigmas[k]
+                Phi_j /= self.sigmas[k]
             # Compute sum square differences
             res += _add_all_squares(Phi_i, Phi_j)
         

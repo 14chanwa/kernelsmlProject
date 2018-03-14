@@ -61,68 +61,68 @@ Xte2 = np.genfromtxt('./data/Xte2.csv', dtype = bytes, delimiter="\n").astype(st
 
 
 
-#~ #%%
-#~ # Xtr0
+#%%
+# Xtr0
 
-#~ list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-#~ n = Xtr0.shape[0]
+list_k=[1, 2, 3, 4, 5, 6, 7, 8]
+n = Xtr0.shape[0]
 
-#~ print("Xtr0 -- list_k=", list_k)
+print("Xtr0 -- list_k=", list_k)
 
-#~ current_kernel = MultipleSpectrumKernel(
-        #~ list_k=list_k,
-        #~ lexicon={"A":0, "T":1, "C":2, "G":3},
-        #~ normalize=True
-        #~ )
-#~ svm = SVM(current_kernel, center=True)
+current_kernel = MultipleSpectrumKernel(
+        list_k=list_k,
+        lexicon={"A":0, "T":1, "C":2, "G":3},
+        normalize=True
+        )
+svm = SVM(current_kernel, center=True)
 
-#~ lambd = k_fold_cross_validation(
-                #~ Xtr=Xtr0, 
-                #~ Ytr=Ytr0_labels, 
-                #~ n=len(Xtr0), 
-                #~ kernel=current_kernel, 
-                #~ algorithm=svm, 
-                #~ k=5,
-                #~ lambd_min=75,#0.12971666666666665, #1e-4,#0.083425,#1e-4,
-                #~ lambd_max=79,#0.16674999999999998, #1e0,#0.138975,#1e0, 
-                #~ steps=6, 
-                #~ depth=3
-                #~ )
-#~ # For list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-#~ # Final bounds: [ 75.0 , 78.33333333333333 ] with test accuracy in [ 0.7270000000000001 , 0.7270000000000001 ]
-#~ # Final bounds: [ 77.88888888888889 , 78.03703703703704 ] with test accuracy in [ 0.729 , 0.729 ] tr_acc ~ 1.0
+lambd = k_fold_cross_validation(
+                Xtr=Xtr0, 
+                Ytr=Ytr0_labels, 
+                n=len(Xtr0), 
+                kernel=current_kernel, 
+                algorithm=svm, 
+                k=5,
+                lambd_min=75,#0.12971666666666665, #1e-4,#0.083425,#1e-4,
+                lambd_max=79,#0.16674999999999998, #1e0,#0.138975,#1e0, 
+                steps=6, 
+                depth=3
+                )
+# For list_k=[1, 2, 3, 4, 5, 6, 7, 8]
+# Final bounds: [ 75.0 , 78.33333333333333 ] with test accuracy in [ 0.7270000000000001 , 0.7270000000000001 ]
+# Final bounds: [ 77.88888888888889 , 78.03703703703704 ] with test accuracy in [ 0.729 , 0.729 ] tr_acc ~ 1.0
 
 
-#~ #%%
-#~ # Xtr1
+#%%
+# Xtr1
 
-#~ list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-#~ n = Xtr1.shape[0]
+list_k=[1, 2, 3, 4, 5, 6, 7, 8]
+n = Xtr1.shape[0]
 
-#~ print("Xtr1 -- list_k=", list_k)
+print("Xtr1 -- list_k=", list_k)
 
-#~ current_kernel = MultipleSpectrumKernel(
-        #~ list_k=list_k,
-        #~ lexicon={"A":0, "T":1, "C":2, "G":3},
-        #~ normalize=True
-        #~ )
-#~ svm = SVM(current_kernel, center=True)
+current_kernel = MultipleSpectrumKernel(
+        list_k=list_k,
+        lexicon={"A":0, "T":1, "C":2, "G":3},
+        normalize=True
+        )
+svm = SVM(current_kernel, center=True)
 
-#~ lambd = k_fold_cross_validation(
-                #~ Xtr=Xtr1, 
-                #~ Ytr=Ytr1_labels, 
-                #~ n=len(Xtr1), 
-                #~ kernel=current_kernel, 
-                #~ algorithm=svm, 
-                #~ k=5,
-                #~ lambd_min=12, #1e-4,
-                #~ lambd_max=14, #1e0, 
-                #~ steps=6, 
-                #~ depth=3
-                #~ )
-#~ # For list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-#~ # Final bounds: [ 12.0 , 13.833333333333332 ] with test accuracy in [ 0.8469999999999999 , 0.8470000000000001 ]
-#~ # Final bounds: [ 13.444444444444443 , 13.518518518518519 ] with test accuracy in [ 0.8455 , 0.8455 ] tr_acc ~ 1.0
+lambd = k_fold_cross_validation(
+                Xtr=Xtr1, 
+                Ytr=Ytr1_labels, 
+                n=len(Xtr1), 
+                kernel=current_kernel, 
+                algorithm=svm, 
+                k=5,
+                lambd_min=12, #1e-4,
+                lambd_max=14, #1e0, 
+                steps=6, 
+                depth=3
+                )
+# For list_k=[1, 2, 3, 4, 5, 6, 7, 8]
+# Final bounds: [ 12.0 , 13.833333333333332 ] with test accuracy in [ 0.8469999999999999 , 0.8470000000000001 ]
+# Final bounds: [ 13.444444444444443 , 13.518518518518519 ] with test accuracy in [ 0.8455 , 0.8455 ] tr_acc ~ 1.0
 
 
 #%%

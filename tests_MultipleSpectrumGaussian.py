@@ -64,8 +64,8 @@ Xte2 = np.genfromtxt('./data/Xte2.csv', dtype = bytes, delimiter="\n").astype(st
 #%%
 # Xtr0
 
-#~ list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-list_k=[3]
+list_k=[1, 2, 3, 4, 5, 6, 7, 8]
+gamma = 7
 n = Xtr0.shape[0]
 
 print("Xtr0 -- list_k=", list_k)
@@ -73,7 +73,7 @@ print("Xtr0 -- list_k=", list_k)
 current_kernel = MultipleSpectrumGaussianKernel(
         list_k=list_k,
         lexicon={"A":0, "T":1, "C":2, "G":3},
-        gamma= 0.6
+        gamma=gamma
         )
 svm = SVM(current_kernel, center=True)
 
@@ -84,74 +84,90 @@ lambd = k_fold_cross_validation(
                 kernel=current_kernel, 
                 algorithm=svm, 
                 k=5,
-                lambd_min=0.00005,#1e-4,#0.12971666666666665, #1e-4,#0.083425,#1e-4,
-                lambd_max=0.001,#1e0,#0.16674999999999998, #1e0,#0.138975,#1e0, 
+                lambd_min=1e-6,#1e-4,#0.12971666666666665, #1e-4,#0.083425,#1e-4,
+                lambd_max=5e-5,#1e0,#0.16674999999999998, #1e0,#0.138975,#1e0, 
+                steps=6, 
+                depth=8
+                )
+
+# gamma=10
+# Final bounds: [ 9.050925925925925e-06 , 9.108024691358024e-06 ] with test accuracy in [ 0.759 , 0.759 ]
+# Final bounds: [ 7.748971193415637e-06 , 7.75034293552812e-06 ] with test accuracy in [ 0.7505 , 0.7505 ]
+# Final bounds: [ 9.749885688157293e-06 , 9.750038103947569e-06 ] with test accuracy in [ 0.7545 , 0.7545 ]
+# Final bounds: [ 9.149977137631459e-06 , 9.150007620789515e-06 ] with test accuracy in [ 0.751 , 0.751 ]
+
+# gamma=5
+# Final bounds: [ 1.1972908093278467e-05 , 1.199531321444902e-05 ] with test accuracy in [ 0.756 , 0.756 ]
+
+# gamma=7
+# Final bounds: [ 6.517261088248744e-06 , 6.520995275110502e-06 ] with test accuracy in [ 0.7590000000000001 , 0.7590000000000001 ]
+# tr_acc ~ 1.0
+
+#%%
+# Xtr1
+
+list_k=[1, 2, 3, 4, 5, 6, 7, 8]
+gamma = 7
+n = Xtr1.shape[0]
+
+print("Xtr1 -- list_k=", list_k)
+
+current_kernel = MultipleSpectrumGaussianKernel(
+        list_k=list_k,
+        lexicon={"A":0, "T":1, "C":2, "G":3},
+        gamma=gamma
+        )
+svm = SVM(current_kernel, center=True)
+
+lambd = k_fold_cross_validation(
+                Xtr=Xtr1, 
+                Ytr=Ytr1_labels, 
+                n=len(Xtr1), 
+                kernel=current_kernel, 
+                algorithm=svm, 
+                k=5,
+                lambd_min=1e-6, #1e-4,
+                lambd_max=5e-5, #1e0, 
+                steps=6, 
+                depth=8
+                )
+
+# gamma=7
+# Final bounds: [ 2.9577732053040696e-05 , 2.958520042676421e-05 ] with test accuracy in [ 0.8895 , 0.8895 ]
+
+
+#%%
+# Xtr2
+
+list_k=[1, 2, 3, 4, 5, 6, 7, 8]
+gamma = 7
+n = Xtr2.shape[0]
+
+print("Xtr2 -- list_k=", list_k)
+
+current_kernel = MultipleSpectrumGaussianKernel(
+        list_k=list_k,
+        lexicon={"A":0, "T":1, "C":2, "G":3},
+        gamma=gamma
+        )
+svm = SVM(current_kernel, center=True)
+
+lambd = k_fold_cross_validation(
+                Xtr=Xtr2, 
+                Ytr=Ytr2_labels, 
+                n=len(Xtr2), 
+                kernel=current_kernel, 
+                algorithm=svm, 
+                k=5,
+                lambd_min=2.7e-5, #1e-4,
+                lambd_max=2.8e-5, #1e0, 
                 steps=6, 
                 depth=3
                 )
-# For list_k = [4, 5, 6]
-# Final bounds: [ 0.11274305555555555 , 0.11891527777777777 ] with test accuracy in [ 0.7470000000000001 , 0.7464999999999999 ]
-# For list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-# Final bounds: [ 0.14308981481481478 , 0.1472046296296296 ] with test accuracy in [ 0.7474999999999999 , 0.7475 ] tr_acc ~ 0.95
 
+# gamma=7
+# Final bounds: [ 2.7314814814814816e-05 , 3.0037037037037036e-05 ] with test accuracy in [ 0.667 , 0.666 ]
+# Final bounds: [ 2.73e-05 , 2.83e-05 ] with test accuracy in [ 0.646 , 0.645 ]
+# Final bounds: [ 2.756111111111111e-05 , 2.7735185185185184e-05 ] with test accuracy in [ 0.6519999999999999 , 0.6519999999999999 ]
+# Final bounds: [ 2.7e-05 , 2.723148148148148e-05 ] with test accuracy in [ 0.6535 , 0.653 ]
 
-#~ #%%
-#~ # Xtr1
-
-#~ list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-#~ n = Xtr1.shape[0]
-
-#~ print("Xtr1 -- list_k=", list_k)
-
-#~ current_kernel = MultipleSpectrumKernel(
-        #~ list_k=list_k,
-        #~ lexicon={"A":0, "T":1, "C":2, "G":3}
-        #~ )
-#~ svm = SVM(current_kernel, center=True)
-
-#~ lambd = k_fold_cross_validation(
-                #~ Xtr=Xtr1, 
-                #~ Ytr=Ytr1_labels, 
-                #~ n=len(Xtr1), 
-                #~ kernel=current_kernel, 
-                #~ algorithm=svm, 
-                #~ k=5,
-                #~ lambd_min=0.07416666666666666, #1e-4,
-                #~ lambd_max=0.09268333333333333, #1e0, 
-                #~ steps=6, 
-                #~ depth=3
-                #~ )
-#~ # For list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-#~ # Final bounds: [ 0.07416666666666666 , 0.09268333333333333 ] with test accuracy in [ 0.8869999999999999 , 0.8879999999999999 ]
-#~ # Final bounds: [ 0.0844537037037037 , 0.0851395061728395 ] with test accuracy in [ 0.8795 , 0.8795 ] tr_acc ~ 0.995
-
-
-#~ #%%
-#~ # Xtr2
-
-#~ list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-#~ n = Xtr2.shape[0]
-
-#~ print("Xtr2 -- list_k=", list_k)
-
-#~ current_kernel = MultipleSpectrumKernel(
-        #~ list_k=list_k,
-        #~ lexicon={"A":0, "T":1, "C":2, "G":3}
-        #~ )
-#~ svm = SVM(current_kernel, center=True)
-
-#~ lambd = k_fold_cross_validation(
-                #~ Xtr=Xtr2, 
-                #~ Ytr=Ytr2_labels, 
-                #~ n=len(Xtr2), 
-                #~ kernel=current_kernel, 
-                #~ algorithm=svm, 
-                #~ k=5,
-                #~ lambd_min=0.05565, #1e-4,
-                #~ lambd_max=0.09268333333333333, #1e0, 
-                #~ steps=6, 
-                #~ depth=3
-                #~ )
-#~ # For list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-#~ # Final bounds: [ 0.05565 , 0.09268333333333333 ] with test accuracy in [ 0.648 , 0.6460000000000001 ]
-#~ # Final bounds: [ 0.08239629629629629 , 0.0837679012345679 ] with test accuracy in [ 0.6425 , 0.643 ] tr_acc ~ 0.98
