@@ -34,8 +34,9 @@ import time
 
 class Kernel(ABC):
 
-    def __init__(self, enable_joblib=False):
+    def __init__(self, normalize=False, enable_joblib=False):
         self.enable_joblib = enable_joblib
+        self.normalize = normalize
 
     @abstractmethod
     def evaluate(self, x, y):
@@ -89,8 +90,16 @@ class Kernel(ABC):
             for i in range(n):
                 K[:i + 1, i] = self._fill_train_line(Xtr, i)
 
+        # Normalize (if indicated)
+        for i in range(n):
+            for j in range(i+1):
+                K[i,j] /= np.sqrt(K[i,i]*K[j,j])
+                
         # Symmetrize
         K = K + K.T - np.diag(K.diagonal())
+        
+        
+        
 
         if verbose:
             end = time.time()

@@ -37,7 +37,7 @@ class SpectrumKernel(Kernel):
         STILL NEEDS SOME SPEED UP
     """
 
-    def __init__(self, k, EOW='$', enable_joblib=False):
+    def __init__(self, k, EOW='$', normalize = False, enable_joblib=False):
         super().__init__(enable_joblib)
         self.k = k
         self.EOW = '$'
@@ -107,7 +107,7 @@ class SpectrumKernelPreindexed(Kernel):
         SpectrumKernelPreindexed
     """
 
-    def __init__(self, k, lexicon, enable_joblib=False):
+    def __init__(self, k, lexicon, normalize = False, enable_joblib=False):
         """
             SpectrumKernelPreindexed.__init__
 
@@ -384,7 +384,7 @@ class MultipleSpectrumKernel(Kernel):
         definite function, so a valid kernel.
     """
 
-    def __init__(self, list_k, lexicon, enable_joblib=False):
+    def __init__(self, list_k, lexicon, normalize = False, enable_joblib=False):
         """
             MultipleSpectrumKernel.__init__
 
@@ -505,7 +505,7 @@ class SubstringKernel(Kernel):
         SubstringKernel
     """
 
-    def __init__(self, k, lambd, lexicon, enable_joblib=False):
+    def __init__(self, k, lambd, lexicon, normalize = False, enable_joblib=False):
         """
             SubstringKernel.__init__
 
@@ -726,7 +726,7 @@ class WDKernel(Kernel):
         WDKernel
     """
 
-    def __init__(self, k, lexicon, enable_joblib=False):
+    def __init__(self, k, lexicon, normalize = False, enable_joblib=False):
         """
             WDKernel.__init__
 
