@@ -115,3 +115,5 @@ def k_fold_cross_validation(Xtr, Ytr, n, kernel, algorithm, k,
         print("Best test accuracy in: [", test_results[best_lambda_indices[0]], ",", test_results[best_lambda_indices[1]], "]")
         print("New lambda bounds: [", lambd_low, lambd_high, "]")
     print("Final bounds: [", lambd_low, ",", lambd_high, "] with test accuracy in [", test_results[best_lambda_indices[0]], ",", test_results[best_lambda_indices[1]], "]") 
+
+    return lambd_low, lambd_high, test_results[best_lambda_indices[0]], test_results[best_lambda_indices[1]] 

@@ -53,17 +53,16 @@ Ytr2 = 2 * Ytr2 - 1
 
 print(">>> Set 0")
 
-list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-lambd = 6.518e-6
-gamma = 7
-print("list_k=", list_k, "lambda=", lambd, "gamma=", gamma)
+list_k=[4, 5, 6, 7, 8]
+lambd = 0.1665
+print("list_k=", list_k, "lambda=", lambd)
 
 n = Xtr0.shape[0]
 
-current_kernel = MultipleSpectrumGaussianKernel(
+current_kernel = MultipleSpectrumKernel(
         list_k=list_k,
         lexicon={"A":0, "T":1, "C":2, "G":3},
-        gamma=gamma
+        remove_dimensions=True
         )
 svm0 = SVM(current_kernel, center=True) 
 svm0.train(Xtr0, Ytr0, n, lambd)
@@ -71,7 +70,7 @@ svm0.train(Xtr0, Ytr0, n, lambd)
 f = svm0.get_training_results()
 tmp = Ytr0 == np.sign(f)
 accuracy = np.sum(tmp) / np.size(tmp)
-print("Training accuracy:", accuracy, "expected~", 1.0) # expected perf 0.759
+print("Training accuracy:", accuracy, "expected~", 0.97) # expected perf 0.754
 
 
 #%%
@@ -79,17 +78,16 @@ print("Training accuracy:", accuracy, "expected~", 1.0) # expected perf 0.759
 
 print(">>> Set 1")
 
-list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-lambd = 2.958e-5
-gamma = 7
-print("list_k=", list_k, "lambda=", lambd, "gamma=", gamma)
+list_k=[5, 6, 7]
+lambd = 0.117
+print("list_k=", list_k, "lambda=", lambd)
 
 n = Xtr1.shape[0]
 
-current_kernel = MultipleSpectrumGaussianKernel(
+current_kernel = MultipleSpectrumKernel(
         list_k=list_k,
         lexicon={"A":0, "T":1, "C":2, "G":3},
-        gamma=gamma
+        remove_dimensions=True
         )
 svm1 = SVM(current_kernel, center=True) 
 svm1.train(Xtr1, Ytr1, n, lambd)
@@ -97,7 +95,7 @@ svm1.train(Xtr1, Ytr1, n, lambd)
 f = svm1.get_training_results()
 tmp = Ytr1 == np.sign(f)
 accuracy = np.sum(tmp) / np.size(tmp)
-print("Training accuracy:", accuracy, "expected~", 0.982) # expected perf 0.8895
+print("Training accuracy:", accuracy, "expected~", 0.986) # expected perf 0.8878
 
 
 #%%
@@ -105,8 +103,8 @@ print("Training accuracy:", accuracy, "expected~", 0.982) # expected perf 0.8895
 
 print(">>> Set 2")
 
-list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-lambd = 0.25455
+list_k=[4]
+lambd = 0.1674
 print("list_k=", list_k, "lambda=", lambd)
 
 n = Xtr2.shape[0]
@@ -122,7 +120,7 @@ svm2.train(Xtr2, Ytr2, n, lambd)
 f = svm2.get_training_results()
 tmp = Ytr2 == np.sign(f)
 accuracy = np.sum(tmp) / np.size(tmp)
-print("Training accuracy:", accuracy, "expected~", 0.95) # expected perf 0.667. Bad!!
+print("Training accuracy:", accuracy, "expected~", 0.88) # expected perf 0.642. Bad!!
 
 
 #%%

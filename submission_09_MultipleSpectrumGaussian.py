@@ -54,8 +54,8 @@ Ytr2 = 2 * Ytr2 - 1
 print(">>> Set 0")
 
 list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-lambd = 6.518e-6
-gamma = 7
+lambd = 1.243e-6
+gamma = 3.3
 print("list_k=", list_k, "lambda=", lambd, "gamma=", gamma)
 
 n = Xtr0.shape[0]
@@ -71,7 +71,7 @@ svm0.train(Xtr0, Ytr0, n, lambd)
 f = svm0.get_training_results()
 tmp = Ytr0 == np.sign(f)
 accuracy = np.sum(tmp) / np.size(tmp)
-print("Training accuracy:", accuracy, "expected~", 1.0) # expected perf 0.759
+print("Training accuracy:", accuracy, "expected~", 1.0) # expected perf 0.7705
 
 
 #%%
@@ -80,8 +80,8 @@ print("Training accuracy:", accuracy, "expected~", 1.0) # expected perf 0.759
 print(">>> Set 1")
 
 list_k=[1, 2, 3, 4, 5, 6, 7, 8]
-lambd = 2.958e-5
-gamma = 7
+lambd = 2.07e-5
+gamma = 4.6
 print("list_k=", list_k, "lambda=", lambd, "gamma=", gamma)
 
 n = Xtr1.shape[0]
@@ -97,13 +97,26 @@ svm1.train(Xtr1, Ytr1, n, lambd)
 f = svm1.get_training_results()
 tmp = Ytr1 == np.sign(f)
 accuracy = np.sum(tmp) / np.size(tmp)
-print("Training accuracy:", accuracy, "expected~", 0.982) # expected perf 0.8895
+print("Training accuracy:", accuracy, "expected~", 0.982) # expected perf 0.889
 
 
 #%%
 
 
 print(">>> Set 2")
+
+#~ list_k=[1, 2, 3, 4, 5, 6, 7, 8]
+#~ lambd = 6.34e-6
+#~ gamma = 2.5
+#~ print("list_k=", list_k, "lambda=", lambd, "gamma=", gamma)
+
+#~ n = Xtr2.shape[0]
+
+#~ current_kernel = MultipleSpectrumGaussianKernel(
+        #~ list_k=list_k,
+        #~ lexicon={"A":0, "T":1, "C":2, "G":3},
+        #~ gamma=gamma
+        #~ )
 
 list_k=[1, 2, 3, 4, 5, 6, 7, 8]
 lambd = 0.25455
@@ -122,7 +135,7 @@ svm2.train(Xtr2, Ytr2, n, lambd)
 f = svm2.get_training_results()
 tmp = Ytr2 == np.sign(f)
 accuracy = np.sum(tmp) / np.size(tmp)
-print("Training accuracy:", accuracy, "expected~", 0.95) # expected perf 0.667. Bad!!
+print("Training accuracy:", accuracy, "expected~", 0.97) # expected perf 0.6465. Bad!!
 
 
 #%%
