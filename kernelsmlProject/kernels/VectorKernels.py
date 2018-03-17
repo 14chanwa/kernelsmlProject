@@ -118,6 +118,108 @@ class LinearKernel(Kernel):
             print("end")
 
         return K_te
+
+
+########################################################################
+### PolyKernel                                                         
+########################################################################
+
+
+class PolyKernel(Kernel):
+    """
+        PolyKernel
+    """
+
+    def __init__(self, d=2, c=0, enable_joblib=False):
+        super().__init__(enable_joblib)
+        self.d = d
+        self.c = c
+
+    def evaluate(self, x, y):
+        """
+            PolyKernel.evaluate
+            Compute x.dot(y)
+
+            Parameters
+            ----------
+            x: np.array.
+            y: np.array.
+
+            Returns
+            ----------
+            res: float.
+        """
+
+        return np.power(x.dot(y.transpose()) + self.c, self.d)
+    
+    def compute_K_train(self, Xtr, n, verbose=True):
+        """
+            PolyKernel.compute_K_train
+            Compute K from data.
+
+            Parameters
+            ----------
+            Xtr: list(object).
+                Training data.
+            n: int.
+                Length of Xtr.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K: np.array.
+        """
+
+        if verbose:
+            print("PolyKernel.compute_K_train")
+        
+        Ktr = Xtr.dot(Xtr.T)
+        
+        Ktr += self.c
+        Ktr = np.power(Ktr, self.d)
+        
+        if verbose:
+            print("end")
+        
+        return Ktr
+    
+    def compute_K_test(self, Xtr, n, Xte, m, verbose=True):
+        """
+            PolyKernel.compute_K_test
+            Gets the matrix K_t = [K(t_i, x_j)] where t_i is the ith test sample
+            and x_j is the jth training sample.
+
+            Parameters
+            ----------
+            Xtr: list(object).
+                Training data.
+            n: int.
+                Length of Xtr.
+            Xte: list(object).
+                Test data.
+            m: int.
+                Length of Xte.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K_te: np.array (shape=(m,n)).
+        """
+
+        if verbose:
+            print("PolyKernel.compute_K_test")
+
+        K_te = Xte.dot(Xtr.T)
+        
+        K_te += self.c
+        K_te = np.power(K_te, self.d)
+
+        if verbose:
+            print("end")
+
+        return K_te
     
 
 ########################################################################
