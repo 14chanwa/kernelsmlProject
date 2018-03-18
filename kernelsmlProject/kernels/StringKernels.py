@@ -761,6 +761,144 @@ class MultipleSpectrumGaussianKernel(Kernel):
 
 
 ########################################################################
+### MultipleSpectrumPolyKernel                                                         
+########################################################################
+
+
+class MultipleSpectrumPolyKernel(Kernel):
+    """
+        MultipleSpectrumPolyKernel
+        Let k_1, k_2... be possible lengths of consecutive substrings.
+        Let Phi_{k_1}, Phi_{k_2}... be the transforms by the Spectrum
+        kernel ; then define Phi associated to this kernel as the
+        sum of all these values. The associated K is indeed a positive
+        definite function, so a valid kernel.
+        Then, apply a polynomial kernel, i.e. K(x, y) <- (K(x, y) + c)**d
+    """
+
+    def __init__(self, list_k, lexicon, d=2, c=0, remove_dimensions=False, normalize=False, enable_joblib=False):
+        """
+            MultipleSpectrumPolyKernel.__init__
+
+            Parameters
+            ----------
+            list_k: list(int). 
+                List of k such that the kernel is the sum of the Phi_k.
+            lexicon: dict. 
+                Map key to integer.
+        """
+
+        super().__init__(enable_joblib)
+        self.list_k = list_k
+        self.lexicon = lexicon
+        self.lex_size = len(lexicon)
+        self.normalize = normalize
+        self.remove_dimensions = remove_dimensions
+        self.d = d
+        self.c = c
+        
+        # Create a list of kernels to be evaluated
+        self.list_kernels = []
+        for i in range(len(self.list_k)):
+            self.list_kernels.append(SpectrumKernelPreindexed(self.list_k[i], self.lexicon, remove_dimensions=self.remove_dimensions, normalize=self.normalize))
+    
+    def evaluate(self, x, y):
+        """
+            MultipleSpectrumPolyKernel.evaluate
+            Compute (sum{Phi(x[0]).dot(Phi(y[0]))} + c)**d
+
+            Parameters
+            ----------
+            x: (string, dictionary, dictionary)
+            y: (string, dictionary, dictionary)
+
+            Returns
+            ----------
+            res: float.
+        """
+        
+        res = 0
+        for kernel in self.list_kernels:
+            res += kernel.evaluate(x, y)
+        
+        return (res + self.c)**self.d
+    
+    def compute_K_train(self, Xtr, n, verbose=True):
+        """
+            MultipleSpectrumKernel.compute_K_train
+            Compute K from data.
+
+            Parameters
+            ----------
+            Xtr: list(string).
+                Training data.
+            n: int.
+                Length of Xtr.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K: np.array.
+        """
+
+        if verbose:
+            print("Called MultipleSpectrumPolyKernel.compute_K_train")
+            start = time.time()
+
+        K = np.zeros((n, n))
+        for kernel in self.list_kernels:
+            K += kernel.compute_K_train(Xtr, n, verbose)
+        
+        K += self.c
+        K = np.power(K, self.d)
+        
+        if verbose:
+            end = time.time()
+            print("end. Time elapsed:", "{0:.2f}".format(end - start))
+
+        return K
+
+    def compute_K_test(self, Xtr, n, Xte, m, verbose=True):
+        """
+            MultipleSpectrumPolyKernel.compute_K_test
+            Gets the matrix K_t = [K(t_i, x_j)] where t_i is the ith test sample
+            and x_j is the jth training sample.
+
+            Parameters
+            ----------
+            Xtr: list(object).
+                Training data.
+            n: int.
+                Length of Xtr.
+            Xte: list(object).
+                Test data.
+            m: int.
+                Length of Xte.
+            verbose: bool.
+                Optional debug output.
+
+            Returns
+            ----------
+            K_t: np.array (shape=(m,n)).
+        """
+
+        if verbose:
+            print("Called MultipleSpectrumPolyKernel.compute_K_test")
+            start = time.time()
+        
+        K_t = np.zeros((m, n))
+        for kernel in self.list_kernels:
+            K_t += kernel.compute_K_test(Xtr, n, Xte, m, verbose)
+        
+        K_t += self.c
+        K_t = np.power(K_t, self.d)
+
+        return K_t
+
+
+
+########################################################################
 ### SubstringKernel                                                         
 ########################################################################
 
