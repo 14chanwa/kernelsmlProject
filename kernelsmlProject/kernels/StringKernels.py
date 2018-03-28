@@ -776,7 +776,7 @@ class MultipleSpectrumPolyKernel(Kernel):
         Then, apply a polynomial kernel, i.e. K(x, y) <- (K(x, y) + c)**d
     """
 
-    def __init__(self, list_k, lexicon, d=2, c=0, remove_dimensions=False, normalize=False, enable_joblib=False):
+    def __init__(self, list_k, lexicon, d=2, c=0, remove_dimensions=False, normalize=False):
         """
             MultipleSpectrumPolyKernel.__init__
 
@@ -788,7 +788,6 @@ class MultipleSpectrumPolyKernel(Kernel):
                 Map key to integer.
         """
 
-        super().__init__(enable_joblib)
         self.list_k = list_k
         self.lexicon = lexicon
         self.lex_size = len(lexicon)
