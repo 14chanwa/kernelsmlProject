@@ -14,6 +14,25 @@ Kernels methods in Machine Learning project
 * [Joblib](https://pythonhosted.org/joblib/) for generic multithreading.
 
 
+### Instructions
+
+
+The submission files generate a `.csv` file in the current folder. This file is our submission file.
+
+
+The main submission file may be ran from the current folder:
+```
+python start.py
+```
+
+
+In order to run the other submission scripts (in `submissionScripts`), one needs to move the script to this folder (i.e. the folder containing `README.md`) so that the script can load `kernelsmlProject` and  `generate_test_results`. For instance:
+```
+cp ./submissionScripts/submission_01_BoW.py ./submission_01_BoW.py
+python submission_01_BoW.py
+```
+
+
 
 ### Multithreading using joblib
 
