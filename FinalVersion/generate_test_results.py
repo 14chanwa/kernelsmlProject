@@ -33,7 +33,7 @@ def generate_submission_file(classifier0, classifier1, classifier2, use_bow=True
     Yte1[Yte1 == -1] = 0
     Yte2[Yte2 == -1] = 0
     
-    f = open('results.csv', 'w')
+    f = open('Yte.csv', 'w')
     f.write("Id,Bound\n")
     count = 0
     for i in range(len(Yte0)):
@@ -60,7 +60,7 @@ def generate_submission_file_2(classifier0, classifier1, classifier2,\
     Yte1[Yte1 == -1] = 0
     Yte2[Yte2 == -1] = 0
     
-    f = open('results.csv', 'w')
+    f = open('Yte.csv', 'w')
     f.write("Id,Bound\n")
     count = 0
     for i in range(len(Yte0)):
