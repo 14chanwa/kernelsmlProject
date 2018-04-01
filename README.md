@@ -1,7 +1,27 @@
 # kernelsmlProject
 
 
-Kernels methods in Machine Learning project
+This repository is the handout for the project of the course [Kernels methods in Machine Learning](http://members.cbio.mines-paristech.fr/~jvert/svn/kernelcourse/course/2018mva/index.html) of the Master MVA, given by Jean-Philippe Vert and Julien Mairal. The objective of the project is to implement ``from scratch'' some algorithms and kernels in order to perform a classification task on strings (DNA sequences). The evaluation consists in a data challenge, in which the students of the course upload submissions of classification results on some test data.
+
+
+Contributors: Quentin CHAN-WAI-NAM and Imke MEYER.
+
+
+### Introduction
+
+
+Kernels methods are useful tools in machine learning, as they enable to extend the reach of well-known linear classification and regression methods to more complicated data. The rough idea is to map the original data (which can be vectors, but also strings, graphs, etc...) to an other feature space, in which the classification/regression is well defined by a line. Kernels methods offer a rigorous mathematical framework to perform such operations, as well as mathematical results such as the kernel trick and the representer theorem, that enable us to build computationally efficient algorithms.
+
+
+
+### Contents
+
+
+We made a package `kernelsmlProject` that implement several linear classification algorithms (linear, logistic regressions, SVM) with compatibility with kernels methods. These algorithms can be found in `kernelsmlProject.algorithms`.
+
+
+The core of the program consists in the implementation of kernels for vectors and strings. This part can be found in `kernelsmlProject.kernels`. We implemented several kernels for vectors (linear, polynomial, gaussian) and strings (spectrum and variants, substring...). The kernels can be centered in the feature space, i.e. the input data mapped to the feature space has mean zero.
+
 
 
 ### Dependancies
@@ -26,12 +46,15 @@ python start.py
 ```
 
 
-In order to run the other submission scripts (in `submissionScripts`), one needs to move the script to this folder (i.e. the folder containing `README.md`) so that the script can load `kernelsmlProject` and  `generate_test_results`. For instance:
+In order to run the other submission scripts (in `submissionScripts`) and the test scripts (in `testScripts`), one needs to move the corresponding Python file to this folder (i.e. the folder containing `README.md`) so that it can load the package `kernelsmlProject`. For instance:
 ```
 cp ./submissionScripts/submission_01_BoW.py ./submission_01_BoW.py
 python submission_01_BoW.py
 ```
-
+```
+cp ./testScripts/tests_MultipleSpectrumGaussian.py ./tests_MultipleSpectrumGaussian.py
+python tests_MultipleSpectrumGaussian.py
+```
 
 
 ### Multithreading using joblib
