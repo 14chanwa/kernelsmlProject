@@ -15,3 +15,4 @@ from kernelsmlProject.kernels import *
 from kernelsmlProject.algorithms import *
 from kernelsmlProject.validation import *
 from kernelsmlProject.pca import *
+from kernelsmlProject.kmeans import *

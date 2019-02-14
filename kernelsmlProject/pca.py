@@ -42,8 +42,10 @@ class PCA():
     
     def __init__(self, kernel):
         if not isinstance(kernel, CenteredKernel):
-            raise Exception("You must provide the PCA a CenteredKernel")
-        self.kernel = kernel
+            #raise Exception("You must provide the PCA a CenteredKernel")
+            self.kernel = CenteredKernel(kernel)
+        else:
+            self.kernel = kernel
     
     def compute_principal_components(self, Xtr, n, Ktr=None, p=None, verbose=True):
         """
@@ -66,7 +68,10 @@ class PCA():
         
         self.X_tr = Xtr
         self.n = n
-        self.K_tr = self.kernel.compute_K_train(Xtr, n, verbose=verbose)
+        if Ktr is not None:
+            self.K_tr = Ktr
+        else:
+            self.K_tr = self.kernel.compute_K_train(Xtr, n, verbose=verbose)
         
         if p is None:
             p = n
@@ -96,7 +101,7 @@ class PCA():
         
         return self.K_tr.dot(self.gamma.T)
         
-    def get_projections(self, Xte, m, Kte=None):
+    def get_projections(self, Xte, m, Kte=None, verbose=True):
         """
             PCA.get_projections
             Get the projections of the provided test set on the p principal
@@ -109,7 +114,7 @@ class PCA():
         """
         
         # Compute new Gram matrix
-        self.K_te = self.kernel.compute_K_test(Xtr, n, Xte, m, verbose=verbose)
+        self.K_te = self.kernel.compute_K_test(self.X_tr, self.n, Xte, m, verbose=verbose)
         
         return self.K_te.dot(self.gamma.T)
 
